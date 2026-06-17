@@ -24,7 +24,7 @@ export async function getAuthClaims(): Promise<AuthClaims | null> {
     return null
   }
 
-  const appMetadata = session.user.user_metadata as Record<string, unknown> | undefined
+  const appMetadata = session.user.app_metadata as Record<string, unknown> | undefined
   if (!appMetadata) {
     return null
   }
