@@ -37,10 +37,21 @@ export async function getAuthClaims(): Promise<AuthClaims | null> {
   }
 }
 
-export async function signUp(email: string, password: string) {
+export async function signUp(
+  email: string,
+  password: string,
+  fullName: string,
+  companyName: string,
+) {
   return await supabase.auth.signUp({
     email,
     password,
+    options: {
+      data: {
+        full_name: fullName,
+        company_name: companyName,
+      },
+    },
   })
 }
 
