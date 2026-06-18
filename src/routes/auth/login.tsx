@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { signIn } from '#/lib/auth'
 import { useAuth } from '#/hooks/useAuth'
 import { Button } from '#/components/ui/button'
@@ -77,6 +77,12 @@ function LoginPage() {
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? 'Entrando...' : 'Entrar'}
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Não tem conta?{' '}
+              <Link to="/auth/signup" className="text-primary underline-offset-4 hover:underline">
+                Criar conta
+              </Link>
+            </p>
           </form>
         </CardContent>
       </Card>
