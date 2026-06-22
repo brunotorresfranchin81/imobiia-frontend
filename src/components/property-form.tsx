@@ -84,7 +84,7 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
         property_type: values.property_type,
         status: values.status,
         area_m2: values.area_m2 ? Number(values.area_m2) : null,
-        price: values.price ? Number(values.price) : null,
+        price: Number(values.price),
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar imóvel')

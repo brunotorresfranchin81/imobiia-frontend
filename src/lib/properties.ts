@@ -11,10 +11,10 @@ export type PropertyFormData = {
   address: string
   neighborhood?: string | null
   city?: string | null
-  property_type?: PropertyType | null
-  status?: PropertyStatus | null
+  property_type: PropertyType
+  status: PropertyStatus
   area_m2?: number | null
-  price?: number | null
+  price: number
 }
 
 export async function listProperties(): Promise<Property[]> {
@@ -39,12 +39,15 @@ export async function getPropertyById(id: string): Promise<Property> {
 }
 
 export async function createProperty(formData: PropertyFormData): Promise<Property> {
-  const [{ data: { user } }, { data: profile, error: profileError }] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase.from('profiles').select('company_id').single(),
-  ])
-
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Não autenticado')
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('company_id')
+    .eq('id', user.id)
+    .single()
+
   if (profileError || !profile?.company_id) throw new Error('Perfil não encontrado')
 
   const { data, error } = await supabase
@@ -65,7 +68,7 @@ export async function createProperty(formData: PropertyFormData): Promise<Proper
 export async function updateProperty(id: string, formData: PropertyFormData): Promise<Property> {
   const { data, error } = await supabase
     .from('properties')
-    .update(formData)
+    .update({ ...formData, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
     .single()
