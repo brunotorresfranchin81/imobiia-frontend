@@ -16,6 +16,9 @@ import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthenticatedOportunidadesRouteImport } from './routes/_authenticated/oportunidades'
 import { Route as AuthenticatedImoveisRouteImport } from './routes/_authenticated/imoveis'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedImoveisIndexRouteImport } from './routes/_authenticated/imoveis.index'
+import { Route as AuthenticatedImoveisNovoRouteImport } from './routes/_authenticated/imoveis.novo'
+import { Route as AuthenticatedImoveisIdEditarRouteImport } from './routes/_authenticated/imoveis.$id.editar'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -52,32 +55,58 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedImoveisIndexRoute =
+  AuthenticatedImoveisIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedImoveisRoute,
+  } as any)
+const AuthenticatedImoveisNovoRoute =
+  AuthenticatedImoveisNovoRouteImport.update({
+    id: '/novo',
+    path: '/novo',
+    getParentRoute: () => AuthenticatedImoveisRoute,
+  } as any)
+const AuthenticatedImoveisIdEditarRoute =
+  AuthenticatedImoveisIdEditarRouteImport.update({
+    id: '/$id/editar',
+    path: '/$id/editar',
+    getParentRoute: () => AuthenticatedImoveisRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/imoveis': typeof AuthenticatedImoveisRoute
+  '/imoveis': typeof AuthenticatedImoveisRouteWithChildren
   '/oportunidades': typeof AuthenticatedOportunidadesRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/imoveis/novo': typeof AuthenticatedImoveisNovoRoute
+  '/imoveis/': typeof AuthenticatedImoveisIndexRoute
+  '/imoveis/$id/editar': typeof AuthenticatedImoveisIdEditarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/imoveis': typeof AuthenticatedImoveisRoute
   '/oportunidades': typeof AuthenticatedOportunidadesRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/imoveis/novo': typeof AuthenticatedImoveisNovoRoute
+  '/imoveis': typeof AuthenticatedImoveisIndexRoute
+  '/imoveis/$id/editar': typeof AuthenticatedImoveisIdEditarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/imoveis': typeof AuthenticatedImoveisRoute
+  '/_authenticated/imoveis': typeof AuthenticatedImoveisRouteWithChildren
   '/_authenticated/oportunidades': typeof AuthenticatedOportunidadesRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/_authenticated/imoveis/novo': typeof AuthenticatedImoveisNovoRoute
+  '/_authenticated/imoveis/': typeof AuthenticatedImoveisIndexRoute
+  '/_authenticated/imoveis/$id/editar': typeof AuthenticatedImoveisIdEditarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -88,14 +117,19 @@ export interface FileRouteTypes {
     | '/oportunidades'
     | '/auth/login'
     | '/auth/signup'
+    | '/imoveis/novo'
+    | '/imoveis/'
+    | '/imoveis/$id/editar'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dashboard'
-    | '/imoveis'
     | '/oportunidades'
     | '/auth/login'
     | '/auth/signup'
+    | '/imoveis/novo'
+    | '/imoveis'
+    | '/imoveis/$id/editar'
   id:
     | '__root__'
     | '/'
@@ -105,6 +139,9 @@ export interface FileRouteTypes {
     | '/_authenticated/oportunidades'
     | '/auth/login'
     | '/auth/signup'
+    | '/_authenticated/imoveis/novo'
+    | '/_authenticated/imoveis/'
+    | '/_authenticated/imoveis/$id/editar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -165,18 +202,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/imoveis/': {
+      id: '/_authenticated/imoveis/'
+      path: '/'
+      fullPath: '/imoveis/'
+      preLoaderRoute: typeof AuthenticatedImoveisIndexRouteImport
+      parentRoute: typeof AuthenticatedImoveisRoute
+    }
+    '/_authenticated/imoveis/novo': {
+      id: '/_authenticated/imoveis/novo'
+      path: '/novo'
+      fullPath: '/imoveis/novo'
+      preLoaderRoute: typeof AuthenticatedImoveisNovoRouteImport
+      parentRoute: typeof AuthenticatedImoveisRoute
+    }
+    '/_authenticated/imoveis/$id/editar': {
+      id: '/_authenticated/imoveis/$id/editar'
+      path: '/$id/editar'
+      fullPath: '/imoveis/$id/editar'
+      preLoaderRoute: typeof AuthenticatedImoveisIdEditarRouteImport
+      parentRoute: typeof AuthenticatedImoveisRoute
+    }
   }
 }
 
+interface AuthenticatedImoveisRouteChildren {
+  AuthenticatedImoveisNovoRoute: typeof AuthenticatedImoveisNovoRoute
+  AuthenticatedImoveisIndexRoute: typeof AuthenticatedImoveisIndexRoute
+  AuthenticatedImoveisIdEditarRoute: typeof AuthenticatedImoveisIdEditarRoute
+}
+
+const AuthenticatedImoveisRouteChildren: AuthenticatedImoveisRouteChildren = {
+  AuthenticatedImoveisNovoRoute: AuthenticatedImoveisNovoRoute,
+  AuthenticatedImoveisIndexRoute: AuthenticatedImoveisIndexRoute,
+  AuthenticatedImoveisIdEditarRoute: AuthenticatedImoveisIdEditarRoute,
+}
+
+const AuthenticatedImoveisRouteWithChildren =
+  AuthenticatedImoveisRoute._addFileChildren(AuthenticatedImoveisRouteChildren)
+
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedImoveisRoute: typeof AuthenticatedImoveisRoute
+  AuthenticatedImoveisRoute: typeof AuthenticatedImoveisRouteWithChildren
   AuthenticatedOportunidadesRoute: typeof AuthenticatedOportunidadesRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedImoveisRoute: AuthenticatedImoveisRoute,
+  AuthenticatedImoveisRoute: AuthenticatedImoveisRouteWithChildren,
   AuthenticatedOportunidadesRoute: AuthenticatedOportunidadesRoute,
 }
 
