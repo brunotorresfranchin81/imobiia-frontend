@@ -1,5 +1,4 @@
 import { supabase } from './supabase'
-import { getAuthClaims } from './auth'
 import type { Database } from './database.types'
 
 export type Property = Database['public']['Tables']['properties']['Row']
@@ -40,16 +39,21 @@ export async function getPropertyById(id: string): Promise<Property> {
 }
 
 export async function createProperty(formData: PropertyFormData): Promise<Property> {
-  const claims = await getAuthClaims()
-  if (!claims) throw new Error('Não autenticado')
+  const [{ data: { user } }, { data: profile, error: profileError }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('profiles').select('company_id').single(),
+  ])
+
+  if (!user) throw new Error('Não autenticado')
+  if (profileError || !profile?.company_id) throw new Error('Perfil não encontrado')
 
   const { data, error } = await supabase
     .from('properties')
     .insert({
       ...formData,
       reference_code: `IMO-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-      company_id: claims.companyId,
-      created_by: claims.userId,
+      company_id: profile.company_id,
+      created_by: user.id,
     })
     .select()
     .single()
