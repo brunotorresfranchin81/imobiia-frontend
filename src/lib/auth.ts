@@ -37,6 +37,15 @@ export async function getAuthClaims(): Promise<AuthClaims | null> {
   }
 }
 
+export async function refreshSession() {
+  const { data, error } = await supabase.auth.refreshSession()
+  if (error) {
+    console.error('Error refreshing session:', error)
+    return null
+  }
+  return data.session
+}
+
 export async function signUp(
   email: string,
   password: string,

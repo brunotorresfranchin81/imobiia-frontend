@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { createFileRoute, redirect, Outlet, Link, useRouter } from '@tanstack/react-router'
-import { getSession, signOut } from '#/lib/auth'
+import { getSession, refreshSession, signOut } from '#/lib/auth'
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: async () => {
+    await refreshSession()
     const session = await getSession()
     if (!session) {
       throw redirect({ to: '/auth/login' })
