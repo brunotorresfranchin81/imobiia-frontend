@@ -82,7 +82,7 @@ function OportunidadesIndexPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -109,9 +109,9 @@ function OportunidadesIndexPage() {
             <tbody className="divide-y divide-gray-200 bg-white">
               {leads.map((lead) => (
                 <tr key={lead.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{lead.full_name}</div>
-                    <div className="text-xs text-gray-400 sm:hidden">{lead.email}</div>
+                  <td className="max-w-[200px] px-4 py-3">
+                    <div className="truncate font-medium text-gray-900">{lead.full_name}</div>
+                    <div className="truncate text-xs text-gray-400 sm:hidden">{lead.email}</div>
                   </td>
                   <td className="hidden px-4 py-3 text-sm text-gray-600 sm:table-cell">
                     {lead.email}
@@ -129,7 +129,7 @@ function OportunidadesIndexPage() {
                     <Link
                       to="/oportunidades/$id/editar"
                       params={{ id: lead.id }}
-                      className="text-sm font-medium text-[#0E3A52] hover:underline"
+                      className="inline-flex items-center -my-2 px-1 py-2 text-sm font-medium text-[#0E3A52] hover:underline"
                     >
                       Editar
                     </Link>

@@ -73,7 +73,7 @@ function ImoveisIndexPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -100,11 +100,11 @@ function ImoveisIndexPage() {
             <tbody className="divide-y divide-gray-200 bg-white">
               {properties.map((property) => (
                 <tr key={property.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">
+                  <td className="max-w-[200px] px-4 py-3">
+                    <div className="truncate font-medium text-gray-900">
                       {property.title}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="truncate text-xs text-gray-400">
                       {property.reference_code}
                     </div>
                   </td>
@@ -126,7 +126,7 @@ function ImoveisIndexPage() {
                     <Link
                       to="/imoveis/$id/editar"
                       params={{ id: property.id }}
-                      className="text-sm font-medium text-[#0E3A52] hover:underline"
+                      className="inline-flex items-center -my-2 px-1 py-2 text-sm font-medium text-[#0E3A52] hover:underline"
                     >
                       Editar
                     </Link>

@@ -11,7 +11,7 @@ function DashboardPage() {
   const { claims } = useAuth()
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 space-y-4 md:p-8 md:space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Visão Geral</h1>
         <p className="mt-1 text-muted-foreground">{claims?.email ?? '—'}</p>

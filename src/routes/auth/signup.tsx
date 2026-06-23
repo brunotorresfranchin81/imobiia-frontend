@@ -62,7 +62,7 @@ function SignUpPage() {
   if (loading) return null
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
+    <div className="flex min-h-screen items-start sm:items-center justify-center overflow-y-auto p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold text-primary">IMOBIIA</CardTitle>

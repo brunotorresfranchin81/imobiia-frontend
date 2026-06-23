@@ -47,7 +47,17 @@ function AuthenticatedLayout() {
         ].join(' ')}
       >
         {/* Logo */}
-        <div className="flex flex-col items-center px-6 py-8">
+        <div className="relative flex flex-col items-center px-6 py-8">
+          <button
+            type="button"
+            aria-label="Fechar menu"
+            onClick={() => setSidebarOpen(false)}
+            className="absolute right-2 top-2 flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-white/70 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293A1 1 0 0 1 .293 9.707L6.586 8 .293 1.707A1 1 0 0 1 .293.293z" />
+            </svg>
+          </button>
           <span className="text-2xl font-bold tracking-widest">IMOBIIA</span>
           <span className="mt-1 text-xs tracking-widest text-white/60 uppercase">
             Gestão Imobiliária
@@ -60,8 +70,8 @@ function AuthenticatedLayout() {
             <Link
               key={item.to}
               to={item.to}
-              className="flex items-center rounded-md px-3 py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-              activeProps={{ className: 'flex items-center rounded-md px-3 py-2.5 text-sm font-medium bg-white/15 text-white' }}
+              className="flex items-center rounded-md px-3 py-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              activeProps={{ className: 'flex items-center rounded-md px-3 py-3 text-sm font-medium bg-white/15 text-white' }}
               onClick={() => setSidebarOpen(false)}
             >
               {item.label}
@@ -74,7 +84,7 @@ function AuthenticatedLayout() {
           <button
             type="button"
             onClick={() => { void handleSignOut() }}
-            className="w-full rounded-md px-3 py-2.5 text-left text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            className="w-full rounded-md px-3 py-3 text-left text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
           >
             Sair
           </button>
@@ -89,7 +99,7 @@ function AuthenticatedLayout() {
             type="button"
             aria-label="Abrir menu"
             onClick={() => setSidebarOpen(true)}
-            className="rounded p-1 text-gray-600 hover:bg-gray-100"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-gray-600 hover:bg-gray-100"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
               <rect y="3" width="20" height="2" rx="1" />

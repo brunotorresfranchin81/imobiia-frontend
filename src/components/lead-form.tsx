@@ -103,7 +103,7 @@ export function LeadForm({ defaultValues, corretores = [], onSubmit, isLoading }
   }
 
   const selectClass =
-    'w-full rounded-lg border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+    'w-full rounded-lg border border-input bg-transparent px-3 py-2.5 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 
   const textareaClass =
     'w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
@@ -202,6 +202,7 @@ export function LeadForm({ defaultValues, corretores = [], onSubmit, isLoading }
           <Input
             id="budget_min"
             type="number"
+            inputMode="decimal"
             min="0"
             step="0.01"
             value={values.budget_min}
@@ -215,6 +216,7 @@ export function LeadForm({ defaultValues, corretores = [], onSubmit, isLoading }
           <Input
             id="budget_max"
             type="number"
+            inputMode="decimal"
             min="0"
             step="0.01"
             value={values.budget_max}
@@ -236,8 +238,8 @@ export function LeadForm({ defaultValues, corretores = [], onSubmit, isLoading }
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={isLoading}>
+      <div className="flex flex-col sm:flex-row sm:justify-end">
+        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
           {isLoading ? 'Salvando...' : 'Salvar Oportunidade'}
         </Button>
       </div>
