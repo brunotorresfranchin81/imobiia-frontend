@@ -17,7 +17,7 @@ export type LeadFormData = {
   notes?: string | null
 }
 
-export type Corretor = { id: string; full_name: string }
+export type Corretor = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'full_name'>
 
 export async function listCorretores(): Promise<Corretor[]> {
   const { data: { user } } = await supabase.auth.getUser()

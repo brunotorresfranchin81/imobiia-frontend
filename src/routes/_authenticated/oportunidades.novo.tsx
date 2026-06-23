@@ -6,6 +6,8 @@ import { LeadForm } from '#/components/lead-form'
 
 export const Route = createFileRoute('/_authenticated/oportunidades/novo')({
   loader: async () => ({ corretores: await listCorretores() }),
+  pendingComponent: () => <div className="p-8 text-sm text-muted-foreground">Carregando...</div>,
+  errorComponent: () => <div className="p-8 text-sm text-destructive">Erro ao carregar formulário. Tente novamente.</div>,
   component: OportunidadesNovoPage,
 })
 

@@ -5,11 +5,10 @@ import type { LeadFormData } from '#/lib/leads'
 import { LeadForm } from '#/components/lead-form'
 
 export const Route = createFileRoute('/_authenticated/oportunidades/$id/editar')({
-  loader: ({ params }) =>
-    Promise.all([getLeadById(params.id), listCorretores()]).then(([lead, corretores]) => ({
-      lead,
-      corretores,
-    })),
+  loader: ({ params }) => Promise.all([getLeadById(params.id), listCorretores()])
+    .then(([lead, corretores]) => ({ lead, corretores })),
+  pendingComponent: () => <div className="p-8 text-sm text-muted-foreground">Carregando...</div>,
+  errorComponent: () => <div className="p-8 text-sm text-destructive">Erro ao carregar oportunidade. Tente novamente.</div>,
   component: OportunidadesEditarPage,
 })
 
