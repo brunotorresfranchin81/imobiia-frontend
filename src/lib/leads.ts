@@ -11,7 +11,6 @@ export type LeadFormData = {
   source: LeadSource
   status: LeadStatus
   phone?: string | null
-  assigned_to?: string | null
   budget_min?: number | null
   budget_max?: number | null
   notes?: string | null

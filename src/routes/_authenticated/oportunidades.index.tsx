@@ -6,6 +6,11 @@ import { Button } from '#/components/ui/button'
 
 export const Route = createFileRoute('/_authenticated/oportunidades/')({
   loader: () => listLeads(),
+  errorComponent: () => (
+    <div className="p-8 text-center text-destructive">
+      Erro ao carregar oportunidades. Tente novamente.
+    </div>
+  ),
   component: OportunidadesIndexPage,
 })
 
