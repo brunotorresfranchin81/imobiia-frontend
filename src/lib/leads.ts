@@ -11,9 +11,35 @@ export type LeadFormData = {
   source: LeadSource
   status: LeadStatus
   phone?: string | null
+  assigned_to?: string | null
   budget_min?: number | null
   budget_max?: number | null
   notes?: string | null
+}
+
+export type Corretor = { id: string; full_name: string }
+
+export async function listCorretores(): Promise<Corretor[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Não autenticado')
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('company_id')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile?.company_id) throw new Error('Perfil não encontrado')
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, full_name')
+    .eq('company_id', profile.company_id)
+    .eq('role', 'corretor')
+    .order('full_name')
+
+  if (error) throw error
+  return data ?? []
 }
 
 export async function listLeads(): Promise<Lead[]> {

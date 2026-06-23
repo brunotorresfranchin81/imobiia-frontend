@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { LeadFormData, LeadSource, LeadStatus } from '#/lib/leads'
+import type { Corretor, LeadFormData, LeadSource, LeadStatus } from '#/lib/leads'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
@@ -26,6 +26,7 @@ interface FormState {
   phone: string
   source: LeadSource
   status: LeadStatus
+  assigned_to: string
   budget_min: string
   budget_max: string
   notes: string
@@ -37,6 +38,7 @@ interface LeadFormDefaultValues {
   phone?: string | null
   source?: LeadSource | null
   status?: LeadStatus | null
+  assigned_to?: string | null
   budget_min?: number | null
   budget_max?: number | null
   notes?: string | null
@@ -44,17 +46,19 @@ interface LeadFormDefaultValues {
 
 interface LeadFormProps {
   defaultValues?: LeadFormDefaultValues
+  corretores?: Corretor[]
   onSubmit: (data: LeadFormData) => Promise<void>
   isLoading?: boolean
 }
 
-export function LeadForm({ defaultValues, onSubmit, isLoading }: LeadFormProps) {
+export function LeadForm({ defaultValues, corretores = [], onSubmit, isLoading }: LeadFormProps) {
   const [values, setValues] = useState<FormState>({
     full_name: defaultValues?.full_name ?? '',
     email: defaultValues?.email ?? '',
     phone: defaultValues?.phone ?? '',
     source: defaultValues?.source ?? 'outro',
     status: defaultValues?.status ?? 'novo',
+    assigned_to: defaultValues?.assigned_to ?? '',
     budget_min: defaultValues?.budget_min != null ? String(defaultValues.budget_min) : '',
     budget_max: defaultValues?.budget_max != null ? String(defaultValues.budget_max) : '',
     notes: defaultValues?.notes ?? '',
@@ -88,6 +92,7 @@ export function LeadForm({ defaultValues, onSubmit, isLoading }: LeadFormProps) 
         source: values.source,
         status: values.status,
         phone: values.phone || null,
+        assigned_to: values.assigned_to || null,
         budget_min: budgetMin,
         budget_max: budgetMax,
         notes: values.notes || null,
@@ -170,6 +175,23 @@ export function LeadForm({ defaultValues, onSubmit, isLoading }: LeadFormProps) 
             {LEAD_STATUSES.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="sm:col-span-2 space-y-1.5">
+          <Label htmlFor="assigned_to">Corretor Responsável</Label>
+          <select
+            id="assigned_to"
+            value={values.assigned_to}
+            onChange={handleChange('assigned_to')}
+            className={selectClass}
+          >
+            <option value="">Sem corretor atribuído</option>
+            {corretores.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.full_name}
               </option>
             ))}
           </select>

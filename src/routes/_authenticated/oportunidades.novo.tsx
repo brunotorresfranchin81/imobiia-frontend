@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { createLead } from '#/lib/leads'
+import { createLead, listCorretores } from '#/lib/leads'
 import type { LeadFormData } from '#/lib/leads'
 import { LeadForm } from '#/components/lead-form'
 
 export const Route = createFileRoute('/_authenticated/oportunidades/novo')({
+  loader: async () => ({ corretores: await listCorretores() }),
   component: OportunidadesNovoPage,
 })
 
 function OportunidadesNovoPage() {
+  const { corretores } = Route.useLoaderData()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -35,6 +37,7 @@ function OportunidadesNovoPage() {
       </div>
       <div className="max-w-2xl">
         <LeadForm
+          corretores={corretores}
           onSubmit={(data) => handleSubmit(data)}
           isLoading={isLoading}
         />

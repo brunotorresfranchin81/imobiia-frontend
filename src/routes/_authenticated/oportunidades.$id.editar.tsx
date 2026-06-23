@@ -1,16 +1,20 @@
 import { useState } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { getLeadById, updateLead } from '#/lib/leads'
+import { getLeadById, listCorretores, updateLead } from '#/lib/leads'
 import type { LeadFormData } from '#/lib/leads'
 import { LeadForm } from '#/components/lead-form'
 
 export const Route = createFileRoute('/_authenticated/oportunidades/$id/editar')({
-  loader: ({ params }) => getLeadById(params.id),
+  loader: ({ params }) =>
+    Promise.all([getLeadById(params.id), listCorretores()]).then(([lead, corretores]) => ({
+      lead,
+      corretores,
+    })),
   component: OportunidadesEditarPage,
 })
 
 function OportunidadesEditarPage() {
-  const lead = Route.useLoaderData()
+  const { lead, corretores } = Route.useLoaderData()
   const { id } = Route.useParams()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -44,10 +48,12 @@ function OportunidadesEditarPage() {
             phone: lead.phone,
             source: lead.source,
             status: lead.status,
+            assigned_to: lead.assigned_to ?? '',
             budget_min: lead.budget_min,
             budget_max: lead.budget_max,
             notes: lead.notes,
           }}
+          corretores={corretores}
           onSubmit={(data) => handleSubmit(data)}
           isLoading={isLoading}
         />
