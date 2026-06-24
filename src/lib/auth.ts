@@ -1,5 +1,9 @@
 import { supabase } from './supabase'
 
+function logError(...args: Parameters<typeof console.error>) {
+  if (import.meta.env.DEV) console.error(...args)
+}
+
 export type UserRole = 'admin' | 'gestor' | 'corretor'
 
 export interface AuthClaims {
@@ -12,7 +16,7 @@ export interface AuthClaims {
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession()
   if (error) {
-    console.error('Error getting session:', error)
+    logError('Error getting session:', error)
     return null
   }
   return data.session
@@ -40,7 +44,7 @@ export async function getAuthClaims(): Promise<AuthClaims | null> {
 export async function refreshSession() {
   const { data, error } = await supabase.auth.refreshSession()
   if (error) {
-    console.error('Error refreshing session:', error)
+    logError('Error refreshing session:', error)
     return null
   }
   return data.session
@@ -78,7 +82,7 @@ export async function signOut() {
 export async function getCurrentUser() {
   const { data, error } = await supabase.auth.getUser()
   if (error) {
-    console.error('Error getting user:', error)
+    logError('Error getting user:', error)
     return null
   }
   return data.user
