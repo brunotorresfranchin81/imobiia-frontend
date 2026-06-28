@@ -1,4 +1,6 @@
 import { supabase } from './supabase'
+import { getAuthContext } from './auth'
+import { DataLayerError } from './errors'
 import type { Database } from './database.types'
 
 export type Lead = Database['public']['Tables']['leads']['Row']
@@ -20,25 +22,16 @@ export type LeadFormData = {
 export type Corretor = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'full_name'>
 
 export async function listCorretores(): Promise<Corretor[]> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Não autenticado')
-
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('company_id')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError || !profile?.company_id) throw new Error('Perfil não encontrado')
+  const { companyId } = await getAuthContext()
 
   const { data, error } = await supabase
     .from('profiles')
     .select('id, full_name')
-    .eq('company_id', profile.company_id)
+    .eq('company_id', companyId)
     .eq('role', 'corretor')
     .order('full_name')
 
-  if (error) throw error
+  if (error) throw new DataLayerError('leads.listCorretores', error)
   return data ?? []
 }
 
@@ -48,7 +41,7 @@ export async function listLeads(): Promise<Lead[]> {
     .select('*')
     .order('created_at', { ascending: false })
 
-  if (error) throw error
+  if (error) throw new DataLayerError('leads.list', error)
   return data ?? []
 }
 
@@ -59,32 +52,23 @@ export async function getLeadById(id: string): Promise<Lead> {
     .eq('id', id)
     .single()
 
-  if (error) throw error
+  if (error) throw new DataLayerError('leads.getById', error)
   return data
 }
 
 export async function createLead(formData: LeadFormData): Promise<Lead> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Não autenticado')
-
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('company_id')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError || !profile?.company_id) throw new Error('Perfil não encontrado')
+  const { companyId } = await getAuthContext()
 
   const { data, error } = await supabase
     .from('leads')
     .insert({
       ...formData,
-      company_id: profile.company_id,
+      company_id: companyId,
     })
     .select()
     .single()
 
-  if (error) throw error
+  if (error) throw new DataLayerError('leads.create', error)
   return data
 }
 
@@ -96,6 +80,6 @@ export async function updateLead(id: string, formData: LeadFormData): Promise<Le
     .select()
     .single()
 
-  if (error) throw error
+  if (error) throw new DataLayerError('leads.update', error)
   return data
 }
