@@ -1,88 +1,67 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Building2, Target } from 'lucide-react'
 import { useAuth } from '#/hooks/useAuth'
-import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
+import { getDashboardMetrics } from '#/lib/analytics'
+import { KpiCard } from '#/components/kpi-card'
+import { LeadsByStatusChart } from '#/components/leads-by-status-chart'
 
 export const Route = createFileRoute('/_authenticated/dashboard')({
+  loader: () => getDashboardMetrics(),
+  pendingComponent: () => (
+    <div className="p-4 md:p-8 text-muted-foreground text-sm">Carregando métricas...</div>
+  ),
+  errorComponent: () => (
+    <div className="p-4 md:p-8 text-destructive text-sm">
+      Erro ao carregar dashboard. Tente recarregar a página.
+    </div>
+  ),
   component: DashboardPage,
 })
 
 function DashboardPage() {
+  const metrics = Route.useLoaderData()
   const { claims } = useAuth()
+
+  const activeLeads = metrics.leadsByStatus
+    .filter((s) => !['fechado', 'perdido', 'arquivado'].includes(s.status))
+    .reduce((acc, s) => acc + s.count, 0)
 
   return (
     <div className="p-4 space-y-4 md:p-8 md:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Visão Geral</h1>
-        <p className="mt-1 text-muted-foreground">{claims?.email ?? '—'}</p>
+        <h1 className="text-2xl font-bold text-gray-900">Visão Geral</h1>
+        <p className="text-sm text-muted-foreground">{claims?.email ?? '—'}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Imóveis ativos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className="text-4xl font-bold text-primary">0</span>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Oportunidades em aberto
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className="text-4xl font-bold text-primary">0</span>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Corretores ativos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className="text-4xl font-bold text-primary">0</span>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiCard label="Total de Leads" value={metrics.totalLeads} />
+        <KpiCard label="Imóveis Ativos" value={metrics.activeProperties} />
+        <KpiCard
+          label="Corretor Top"
+          value={metrics.topCorretores[0]?.full_name ?? '—'}
+        />
+        <KpiCard label="Leads Ativos" value={activeLeads} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Imóveis recentes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
-                <Building2 className="mb-3 h-10 w-10 opacity-40" />
-                <p className="font-medium">Nenhum imóvel cadastrado ainda</p>
-                <p className="text-sm">Cadastre o primeiro imóvel para começar</p>
+      {metrics.leadsByStatus.length > 0 && (
+        <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Leads por Status</h2>
+          <LeadsByStatusChart data={metrics.leadsByStatus} />
+        </div>
+      )}
+
+      {metrics.topCorretores.length > 0 && (
+        <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Top Corretores</h2>
+          <div className="space-y-2">
+            {metrics.topCorretores.map((c, i) => (
+              <div key={c.id} className="flex items-center justify-between">
+                <span className="text-sm font-medium">{i + 1}. {c.full_name}</span>
+                <span className="text-sm text-muted-foreground">{c.leadCount} leads</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Oportunidades recentes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
-                <Target className="mb-3 h-10 w-10 opacity-40" />
-                <p className="font-medium">Nenhuma oportunidade registrada ainda</p>
-                <p className="text-sm">Adicione a primeira oportunidade para começar</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
