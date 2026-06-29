@@ -1,4 +1,6 @@
 import { supabase } from './supabase'
+import { getAuthContext } from './auth'
+import { DataLayerError } from './errors'
 import type { Database } from './database.types'
 
 export type Property = Database['public']['Tables']['properties']['Row']
@@ -23,7 +25,7 @@ export async function listProperties(): Promise<Property[]> {
     .select('*')
     .order('created_at', { ascending: false })
 
-  if (error) throw error
+  if (error) throw new DataLayerError('properties.list', error)
   return data ?? []
 }
 
@@ -34,34 +36,25 @@ export async function getPropertyById(id: string): Promise<Property> {
     .eq('id', id)
     .single()
 
-  if (error) throw error
+  if (error) throw new DataLayerError('properties.getById', error)
   return data
 }
 
 export async function createProperty(formData: PropertyFormData): Promise<Property> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Não autenticado')
-
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('company_id')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError || !profile?.company_id) throw new Error('Perfil não encontrado')
+  const { userId, companyId } = await getAuthContext()
 
   const { data, error } = await supabase
     .from('properties')
     .insert({
       ...formData,
       reference_code: `IMO-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-      company_id: profile.company_id,
-      created_by: user.id,
+      company_id: companyId,
+      created_by: userId,
     })
     .select()
     .single()
 
-  if (error) throw error
+  if (error) throw new DataLayerError('properties.create', error)
   return data
 }
 
@@ -73,6 +66,6 @@ export async function updateProperty(id: string, formData: PropertyFormData): Pr
     .select()
     .single()
 
-  if (error) throw error
+  if (error) throw new DataLayerError('properties.update', error)
   return data
 }

@@ -1,7 +1,8 @@
 import { supabase } from './supabase'
+import { DataLayerError } from './errors'
 
-function logError(...args: Parameters<typeof console.error>) {
-  if (import.meta.env.DEV) console.error(...args)
+function logError(context: string, ...args: unknown[]) {
+  if (import.meta.env.DEV) console.error(`[${context}]`, ...args)
 }
 
 export type UserRole = 'admin' | 'gestor' | 'corretor'
@@ -16,7 +17,7 @@ export interface AuthClaims {
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession()
   if (error) {
-    logError('Error getting session:', error)
+    logError('auth.getSession', error)
     return null
   }
   return data.session
@@ -41,10 +42,35 @@ export async function getAuthClaims(): Promise<AuthClaims | null> {
   }
 }
 
+export async function getAuthContext(): Promise<AuthClaims> {
+  const claims = await getAuthClaims()
+  if (claims?.companyId) return claims
+
+  const session = await getSession()
+  if (!session?.user) throw new DataLayerError('[auth]', 'Não autenticado')
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', session.user.id)
+    .single()
+
+  if (error || !profile?.company_id) {
+    throw new DataLayerError('[auth]', 'company_id ausente em profiles')
+  }
+
+  return {
+    userId: session.user.id,
+    email: session.user.email || '',
+    role: (profile.role as UserRole) || 'corretor',
+    companyId: profile.company_id,
+  }
+}
+
 export async function refreshSession() {
   const { data, error } = await supabase.auth.refreshSession()
   if (error) {
-    logError('Error refreshing session:', error)
+    logError('auth.refreshSession', error)
     return null
   }
   return data.session
@@ -82,7 +108,7 @@ export async function signOut() {
 export async function getCurrentUser() {
   const { data, error } = await supabase.auth.getUser()
   if (error) {
-    logError('Error getting user:', error)
+    logError('auth.getCurrentUser', error)
     return null
   }
   return data.user

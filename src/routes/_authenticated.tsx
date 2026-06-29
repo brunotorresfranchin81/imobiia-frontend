@@ -17,6 +17,7 @@ const navItems = [
   { label: 'Visão Geral', to: '/dashboard' },
   { label: 'Imóveis', to: '/imoveis' },
   { label: 'Oportunidades', to: '/oportunidades' },
+  { label: 'Corretores', to: '/corretores' },
 ] as const
 
 function AuthenticatedLayout() {
