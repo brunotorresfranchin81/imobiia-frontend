@@ -12,5 +12,5 @@ additional_redirect_urls = ["https://imobiia-frontend-v2.vercel.app"]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 
-[functions]
+[functions.invite-corretor]
 verify_jwt = true

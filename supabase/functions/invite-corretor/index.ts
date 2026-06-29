@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
 
   const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey)
 
-  const { error } = await adminClient.auth.admin.inviteUserByEmail(email, {
+  const { data: inviteData, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
     data: {
       full_name: fullName,
       company_id: callerCompanyId,
@@ -77,6 +77,12 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ error: error.message }), {
       status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  if (inviteData?.user?.id) {
+    await adminClient.auth.admin.updateUserById(inviteData.user.id, {
+      app_metadata: { company_id: callerCompanyId, role: 'corretor' },
     })
   }
 

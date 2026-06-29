@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { DataLayerError } from './errors'
 
 function logError(context: string, ...args: unknown[]) {
   if (import.meta.env.DEV) console.error(`[${context}]`, ...args)
@@ -43,8 +44,27 @@ export async function getAuthClaims(): Promise<AuthClaims | null> {
 
 export async function getAuthContext(): Promise<AuthClaims> {
   const claims = await getAuthClaims()
-  if (!claims?.companyId) throw new Error('[auth] Não autenticado ou companyId ausente')
-  return claims
+  if (claims?.companyId) return claims
+
+  const session = await getSession()
+  if (!session?.user) throw new DataLayerError('[auth]', 'Não autenticado')
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('company_id, role')
+    .eq('id', session.user.id)
+    .single()
+
+  if (error || !profile?.company_id) {
+    throw new DataLayerError('[auth]', 'company_id ausente em profiles')
+  }
+
+  return {
+    userId: session.user.id,
+    email: session.user.email || '',
+    role: (profile.role as UserRole) || 'corretor',
+    companyId: profile.company_id,
+  }
 }
 
 export async function refreshSession() {
