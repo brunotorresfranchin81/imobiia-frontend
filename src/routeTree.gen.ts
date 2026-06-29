@@ -19,8 +19,10 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedCorretoresRouteImport } from './routes/_authenticated/corretores'
 import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_authenticated/oportunidades.index'
 import { Route as AuthenticatedImoveisIndexRouteImport } from './routes/_authenticated/imoveis.index'
+import { Route as AuthenticatedCorretoresIndexRouteImport } from './routes/_authenticated/corretores.index'
 import { Route as AuthenticatedOportunidadesNovoRouteImport } from './routes/_authenticated/oportunidades.novo'
 import { Route as AuthenticatedImoveisNovoRouteImport } from './routes/_authenticated/imoveis.novo'
+import { Route as AuthenticatedCorretoresConvidarRouteImport } from './routes/_authenticated/corretores.convidar'
 import { Route as AuthenticatedOportunidadesIdEditarRouteImport } from './routes/_authenticated/oportunidades.$id.editar'
 import { Route as AuthenticatedImoveisIdEditarRouteImport } from './routes/_authenticated/imoveis.$id.editar'
 
@@ -76,6 +78,12 @@ const AuthenticatedImoveisIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedImoveisRoute,
   } as any)
+const AuthenticatedCorretoresIndexRoute =
+  AuthenticatedCorretoresIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedCorretoresRoute,
+  } as any)
 const AuthenticatedOportunidadesNovoRoute =
   AuthenticatedOportunidadesNovoRouteImport.update({
     id: '/novo',
@@ -87,6 +95,12 @@ const AuthenticatedImoveisNovoRoute =
     id: '/novo',
     path: '/novo',
     getParentRoute: () => AuthenticatedImoveisRoute,
+  } as any)
+const AuthenticatedCorretoresConvidarRoute =
+  AuthenticatedCorretoresConvidarRouteImport.update({
+    id: '/convidar',
+    path: '/convidar',
+    getParentRoute: () => AuthenticatedCorretoresRoute,
   } as any)
 const AuthenticatedOportunidadesIdEditarRoute =
   AuthenticatedOportunidadesIdEditarRouteImport.update({
@@ -103,14 +117,16 @@ const AuthenticatedImoveisIdEditarRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/corretores': typeof AuthenticatedCorretoresRoute
+  '/corretores': typeof AuthenticatedCorretoresRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/imoveis': typeof AuthenticatedImoveisRouteWithChildren
   '/oportunidades': typeof AuthenticatedOportunidadesRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/corretores/convidar': typeof AuthenticatedCorretoresConvidarRoute
   '/imoveis/novo': typeof AuthenticatedImoveisNovoRoute
   '/oportunidades/novo': typeof AuthenticatedOportunidadesNovoRoute
+  '/corretores/': typeof AuthenticatedCorretoresIndexRoute
   '/imoveis/': typeof AuthenticatedImoveisIndexRoute
   '/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/imoveis/$id/editar': typeof AuthenticatedImoveisIdEditarRoute
@@ -118,12 +134,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/corretores': typeof AuthenticatedCorretoresRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/corretores/convidar': typeof AuthenticatedCorretoresConvidarRoute
   '/imoveis/novo': typeof AuthenticatedImoveisNovoRoute
   '/oportunidades/novo': typeof AuthenticatedOportunidadesNovoRoute
+  '/corretores': typeof AuthenticatedCorretoresIndexRoute
   '/imoveis': typeof AuthenticatedImoveisIndexRoute
   '/oportunidades': typeof AuthenticatedOportunidadesIndexRoute
   '/imoveis/$id/editar': typeof AuthenticatedImoveisIdEditarRoute
@@ -133,14 +150,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/_authenticated/corretores': typeof AuthenticatedCorretoresRoute
+  '/_authenticated/corretores': typeof AuthenticatedCorretoresRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/imoveis': typeof AuthenticatedImoveisRouteWithChildren
   '/_authenticated/oportunidades': typeof AuthenticatedOportunidadesRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/_authenticated/corretores/convidar': typeof AuthenticatedCorretoresConvidarRoute
   '/_authenticated/imoveis/novo': typeof AuthenticatedImoveisNovoRoute
   '/_authenticated/oportunidades/novo': typeof AuthenticatedOportunidadesNovoRoute
+  '/_authenticated/corretores/': typeof AuthenticatedCorretoresIndexRoute
   '/_authenticated/imoveis/': typeof AuthenticatedImoveisIndexRoute
   '/_authenticated/oportunidades/': typeof AuthenticatedOportunidadesIndexRoute
   '/_authenticated/imoveis/$id/editar': typeof AuthenticatedImoveisIdEditarRoute
@@ -156,8 +175,10 @@ export interface FileRouteTypes {
     | '/oportunidades'
     | '/auth/login'
     | '/auth/signup'
+    | '/corretores/convidar'
     | '/imoveis/novo'
     | '/oportunidades/novo'
+    | '/corretores/'
     | '/imoveis/'
     | '/oportunidades/'
     | '/imoveis/$id/editar'
@@ -165,12 +186,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/corretores'
     | '/dashboard'
     | '/auth/login'
     | '/auth/signup'
+    | '/corretores/convidar'
     | '/imoveis/novo'
     | '/oportunidades/novo'
+    | '/corretores'
     | '/imoveis'
     | '/oportunidades'
     | '/imoveis/$id/editar'
@@ -185,8 +207,10 @@ export interface FileRouteTypes {
     | '/_authenticated/oportunidades'
     | '/auth/login'
     | '/auth/signup'
+    | '/_authenticated/corretores/convidar'
     | '/_authenticated/imoveis/novo'
     | '/_authenticated/oportunidades/novo'
+    | '/_authenticated/corretores/'
     | '/_authenticated/imoveis/'
     | '/_authenticated/oportunidades/'
     | '/_authenticated/imoveis/$id/editar'
@@ -272,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImoveisIndexRouteImport
       parentRoute: typeof AuthenticatedImoveisRoute
     }
+    '/_authenticated/corretores/': {
+      id: '/_authenticated/corretores/'
+      path: '/'
+      fullPath: '/corretores/'
+      preLoaderRoute: typeof AuthenticatedCorretoresIndexRouteImport
+      parentRoute: typeof AuthenticatedCorretoresRoute
+    }
     '/_authenticated/oportunidades/novo': {
       id: '/_authenticated/oportunidades/novo'
       path: '/novo'
@@ -285,6 +316,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/imoveis/novo'
       preLoaderRoute: typeof AuthenticatedImoveisNovoRouteImport
       parentRoute: typeof AuthenticatedImoveisRoute
+    }
+    '/_authenticated/corretores/convidar': {
+      id: '/_authenticated/corretores/convidar'
+      path: '/convidar'
+      fullPath: '/corretores/convidar'
+      preLoaderRoute: typeof AuthenticatedCorretoresConvidarRouteImport
+      parentRoute: typeof AuthenticatedCorretoresRoute
     }
     '/_authenticated/oportunidades/$id/editar': {
       id: '/_authenticated/oportunidades/$id/editar'
@@ -302,6 +340,22 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedCorretoresRouteChildren {
+  AuthenticatedCorretoresConvidarRoute: typeof AuthenticatedCorretoresConvidarRoute
+  AuthenticatedCorretoresIndexRoute: typeof AuthenticatedCorretoresIndexRoute
+}
+
+const AuthenticatedCorretoresRouteChildren: AuthenticatedCorretoresRouteChildren =
+  {
+    AuthenticatedCorretoresConvidarRoute: AuthenticatedCorretoresConvidarRoute,
+    AuthenticatedCorretoresIndexRoute: AuthenticatedCorretoresIndexRoute,
+  }
+
+const AuthenticatedCorretoresRouteWithChildren =
+  AuthenticatedCorretoresRoute._addFileChildren(
+    AuthenticatedCorretoresRouteChildren,
+  )
 
 interface AuthenticatedImoveisRouteChildren {
   AuthenticatedImoveisNovoRoute: typeof AuthenticatedImoveisNovoRoute
@@ -338,14 +392,14 @@ const AuthenticatedOportunidadesRouteWithChildren =
   )
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedCorretoresRoute: typeof AuthenticatedCorretoresRoute
+  AuthenticatedCorretoresRoute: typeof AuthenticatedCorretoresRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedImoveisRoute: typeof AuthenticatedImoveisRouteWithChildren
   AuthenticatedOportunidadesRoute: typeof AuthenticatedOportunidadesRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedCorretoresRoute: AuthenticatedCorretoresRoute,
+  AuthenticatedCorretoresRoute: AuthenticatedCorretoresRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedImoveisRoute: AuthenticatedImoveisRouteWithChildren,
   AuthenticatedOportunidadesRoute: AuthenticatedOportunidadesRouteWithChildren,
