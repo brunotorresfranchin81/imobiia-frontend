@@ -56,6 +56,12 @@ export async function getAuthContext(): Promise<AuthClaims> {
     .single()
 
   if (error || !profile?.company_id) {
+    // LOG TEMPORÁRIO DE DIAGNÓSTICO — remover após identificar causa
+    console.log('[auth:getAuthContext] fallback query result:', {
+      profile,
+      error,
+      userId: session.user.id,
+    })
     throw new DataLayerError('[auth]', 'company_id ausente em profiles')
   }
 
