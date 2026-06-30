@@ -21,6 +21,7 @@ import { Route as AuthenticatedOportunidadesIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedImoveisIndexRouteImport } from './routes/_authenticated/imoveis.index'
 import { Route as AuthenticatedCorretoresIndexRouteImport } from './routes/_authenticated/corretores.index'
 import { Route as AuthenticatedOportunidadesNovoRouteImport } from './routes/_authenticated/oportunidades.novo'
+import { Route as AuthenticatedOportunidadesIdRouteImport } from './routes/_authenticated/oportunidades.$id'
 import { Route as AuthenticatedImoveisNovoRouteImport } from './routes/_authenticated/imoveis.novo'
 import { Route as AuthenticatedCorretoresConvidarRouteImport } from './routes/_authenticated/corretores.convidar'
 import { Route as AuthenticatedOportunidadesIdEditarRouteImport } from './routes/_authenticated/oportunidades.$id.editar'
@@ -90,6 +91,12 @@ const AuthenticatedOportunidadesNovoRoute =
     path: '/novo',
     getParentRoute: () => AuthenticatedOportunidadesRoute,
   } as any)
+const AuthenticatedOportunidadesIdRoute =
+  AuthenticatedOportunidadesIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedOportunidadesRoute,
+  } as any)
 const AuthenticatedImoveisNovoRoute =
   AuthenticatedImoveisNovoRouteImport.update({
     id: '/novo',
@@ -104,9 +111,9 @@ const AuthenticatedCorretoresConvidarRoute =
   } as any)
 const AuthenticatedOportunidadesIdEditarRoute =
   AuthenticatedOportunidadesIdEditarRouteImport.update({
-    id: '/$id/editar',
-    path: '/$id/editar',
-    getParentRoute: () => AuthenticatedOportunidadesRoute,
+    id: '/editar',
+    path: '/editar',
+    getParentRoute: () => AuthenticatedOportunidadesIdRoute,
   } as any)
 const AuthenticatedImoveisIdEditarRoute =
   AuthenticatedImoveisIdEditarRouteImport.update({
@@ -125,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/auth/signup': typeof AuthSignupRoute
   '/corretores/convidar': typeof AuthenticatedCorretoresConvidarRoute
   '/imoveis/novo': typeof AuthenticatedImoveisNovoRoute
+  '/oportunidades/$id': typeof AuthenticatedOportunidadesIdRouteWithChildren
   '/oportunidades/novo': typeof AuthenticatedOportunidadesNovoRoute
   '/corretores/': typeof AuthenticatedCorretoresIndexRoute
   '/imoveis/': typeof AuthenticatedImoveisIndexRoute
@@ -139,6 +147,7 @@ export interface FileRoutesByTo {
   '/auth/signup': typeof AuthSignupRoute
   '/corretores/convidar': typeof AuthenticatedCorretoresConvidarRoute
   '/imoveis/novo': typeof AuthenticatedImoveisNovoRoute
+  '/oportunidades/$id': typeof AuthenticatedOportunidadesIdRouteWithChildren
   '/oportunidades/novo': typeof AuthenticatedOportunidadesNovoRoute
   '/corretores': typeof AuthenticatedCorretoresIndexRoute
   '/imoveis': typeof AuthenticatedImoveisIndexRoute
@@ -158,6 +167,7 @@ export interface FileRoutesById {
   '/auth/signup': typeof AuthSignupRoute
   '/_authenticated/corretores/convidar': typeof AuthenticatedCorretoresConvidarRoute
   '/_authenticated/imoveis/novo': typeof AuthenticatedImoveisNovoRoute
+  '/_authenticated/oportunidades/$id': typeof AuthenticatedOportunidadesIdRouteWithChildren
   '/_authenticated/oportunidades/novo': typeof AuthenticatedOportunidadesNovoRoute
   '/_authenticated/corretores/': typeof AuthenticatedCorretoresIndexRoute
   '/_authenticated/imoveis/': typeof AuthenticatedImoveisIndexRoute
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/auth/signup'
     | '/corretores/convidar'
     | '/imoveis/novo'
+    | '/oportunidades/$id'
     | '/oportunidades/novo'
     | '/corretores/'
     | '/imoveis/'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/auth/signup'
     | '/corretores/convidar'
     | '/imoveis/novo'
+    | '/oportunidades/$id'
     | '/oportunidades/novo'
     | '/corretores'
     | '/imoveis'
@@ -209,6 +221,7 @@ export interface FileRouteTypes {
     | '/auth/signup'
     | '/_authenticated/corretores/convidar'
     | '/_authenticated/imoveis/novo'
+    | '/_authenticated/oportunidades/$id'
     | '/_authenticated/oportunidades/novo'
     | '/_authenticated/corretores/'
     | '/_authenticated/imoveis/'
@@ -310,6 +323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOportunidadesNovoRouteImport
       parentRoute: typeof AuthenticatedOportunidadesRoute
     }
+    '/_authenticated/oportunidades/$id': {
+      id: '/_authenticated/oportunidades/$id'
+      path: '/$id'
+      fullPath: '/oportunidades/$id'
+      preLoaderRoute: typeof AuthenticatedOportunidadesIdRouteImport
+      parentRoute: typeof AuthenticatedOportunidadesRoute
+    }
     '/_authenticated/imoveis/novo': {
       id: '/_authenticated/imoveis/novo'
       path: '/novo'
@@ -326,10 +346,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/oportunidades/$id/editar': {
       id: '/_authenticated/oportunidades/$id/editar'
-      path: '/$id/editar'
+      path: '/editar'
       fullPath: '/oportunidades/$id/editar'
       preLoaderRoute: typeof AuthenticatedOportunidadesIdEditarRouteImport
-      parentRoute: typeof AuthenticatedOportunidadesRoute
+      parentRoute: typeof AuthenticatedOportunidadesIdRoute
     }
     '/_authenticated/imoveis/$id/editar': {
       id: '/_authenticated/imoveis/$id/editar'
@@ -372,18 +392,33 @@ const AuthenticatedImoveisRouteChildren: AuthenticatedImoveisRouteChildren = {
 const AuthenticatedImoveisRouteWithChildren =
   AuthenticatedImoveisRoute._addFileChildren(AuthenticatedImoveisRouteChildren)
 
+interface AuthenticatedOportunidadesIdRouteChildren {
+  AuthenticatedOportunidadesIdEditarRoute: typeof AuthenticatedOportunidadesIdEditarRoute
+}
+
+const AuthenticatedOportunidadesIdRouteChildren: AuthenticatedOportunidadesIdRouteChildren =
+  {
+    AuthenticatedOportunidadesIdEditarRoute:
+      AuthenticatedOportunidadesIdEditarRoute,
+  }
+
+const AuthenticatedOportunidadesIdRouteWithChildren =
+  AuthenticatedOportunidadesIdRoute._addFileChildren(
+    AuthenticatedOportunidadesIdRouteChildren,
+  )
+
 interface AuthenticatedOportunidadesRouteChildren {
+  AuthenticatedOportunidadesIdRoute: typeof AuthenticatedOportunidadesIdRouteWithChildren
   AuthenticatedOportunidadesNovoRoute: typeof AuthenticatedOportunidadesNovoRoute
   AuthenticatedOportunidadesIndexRoute: typeof AuthenticatedOportunidadesIndexRoute
-  AuthenticatedOportunidadesIdEditarRoute: typeof AuthenticatedOportunidadesIdEditarRoute
 }
 
 const AuthenticatedOportunidadesRouteChildren: AuthenticatedOportunidadesRouteChildren =
   {
+    AuthenticatedOportunidadesIdRoute:
+      AuthenticatedOportunidadesIdRouteWithChildren,
     AuthenticatedOportunidadesNovoRoute: AuthenticatedOportunidadesNovoRoute,
     AuthenticatedOportunidadesIndexRoute: AuthenticatedOportunidadesIndexRoute,
-    AuthenticatedOportunidadesIdEditarRoute:
-      AuthenticatedOportunidadesIdEditarRoute,
   }
 
 const AuthenticatedOportunidadesRouteWithChildren =
