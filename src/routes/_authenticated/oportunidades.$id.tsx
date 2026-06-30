@@ -2,19 +2,20 @@ import { useState } from 'react'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { Sparkles } from 'lucide-react'
 import { getLeadById } from '#/lib/leads'
-import { qualifyLead, getLatestAiScore } from '#/lib/ai'
+import { qualifyLead, getLatestAiScore, generateSummary, getLatestSummary } from '#/lib/ai'
 import { scoreToLabel } from '#/types/domain'
-import type { AiQualification, AiScore } from '#/types/domain'
-import type { Lead, LeadSource, LeadStatus } from '#/lib/leads'
+import type { AiQualification, AiScore, AiSummary } from '#/types/domain'
+import type { LeadSource, LeadStatus } from '#/lib/leads'
 import { Button } from '#/components/ui/button'
 
 export const Route = createFileRoute('/_authenticated/oportunidades/$id')({
   loader: async ({ params }) => {
-    const [lead, aiScore] = await Promise.all([
+    const [lead, aiScore, summary] = await Promise.all([
       getLeadById(params.id),
       getLatestAiScore(params.id),
+      getLatestSummary(params.id),
     ])
-    return { lead, aiScore }
+    return { lead, aiScore, summary }
   },
   pendingComponent: () => (
     <div className="p-8 text-sm text-muted-foreground">Carregando...</div>
@@ -105,11 +106,25 @@ function ScoreCard({ qualification }: { qualification: AiQualification }) {
   )
 }
 
+function SummaryCard({ summary }: { summary: AiSummary }) {
+  return (
+    <div className="rounded-lg border bg-gray-50 p-4">
+      <p className="text-sm text-gray-700">{summary.content}</p>
+      <p className="mt-2 text-xs text-gray-500">
+        Gerado em {new Date(summary.generatedAt).toLocaleString('pt-BR')}
+      </p>
+    </div>
+  )
+}
+
 function OportunidadeDetailPage() {
-  const { lead, aiScore: initialAiScore } = Route.useLoaderData()
+  const { lead, aiScore: initialAiScore, summary: initialSummary } = Route.useLoaderData()
   const [aiScore, setAiScore] = useState<AiQualification | null>(initialAiScore)
   const [isQualifying, setIsQualifying] = useState(false)
   const [qualifyError, setQualifyError] = useState<string | null>(null)
+  const [summary, setSummary] = useState<AiSummary | null>(initialSummary)
+  const [isSummarizing, setIsSummarizing] = useState(false)
+  const [summarizeError, setSummarizeError] = useState<string | null>(null)
 
   async function handleQualify() {
     setIsQualifying(true)
@@ -121,6 +136,19 @@ function OportunidadeDetailPage() {
       setQualifyError(err instanceof Error ? err.message : 'Erro ao qualificar lead')
     } finally {
       setIsQualifying(false)
+    }
+  }
+
+  async function handleSummarize() {
+    setIsSummarizing(true)
+    setSummarizeError(null)
+    try {
+      const result = await generateSummary(lead.id)
+      setSummary(result)
+    } catch (err) {
+      setSummarizeError(err instanceof Error ? err.message : 'Erro ao gerar resumo')
+    } finally {
+      setIsSummarizing(false)
     }
   }
 
@@ -212,6 +240,39 @@ function OportunidadeDetailPage() {
               >
                 <Sparkles className="h-4 w-4" />
                 {isQualifying ? 'Qualificando...' : 'Qualificar com IA'}
+              </Button>
+            </div>
+
+            <div className="rounded-lg border bg-white p-5 shadow-sm">
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Resumo Inteligente
+              </h2>
+
+              {summary ? (
+                <SummaryCard summary={summary} />
+              ) : (
+                <p className="mb-4 text-sm text-gray-500">
+                  Nenhum resumo gerado ainda.
+                </p>
+              )}
+
+              {summarizeError && (
+                <p className="mb-3 mt-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {summarizeError}
+                </p>
+              )}
+
+              <Button
+                onClick={handleSummarize}
+                disabled={isSummarizing}
+                className="mt-4 gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                {isSummarizing
+                  ? 'Gerando...'
+                  : summary
+                    ? 'Atualizar Resumo'
+                    : 'Gerar Resumo'}
               </Button>
             </div>
           </div>
