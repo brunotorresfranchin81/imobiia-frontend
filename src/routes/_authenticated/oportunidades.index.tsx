@@ -126,13 +126,22 @@ function OportunidadesIndexPage() {
                     {formatBudget(lead.budget_min, lead.budget_max)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      to="/oportunidades/$id/editar"
-                      params={{ id: lead.id }}
-                      className="inline-flex items-center -my-2 px-1 py-2 text-sm font-medium text-[#0E3A52] hover:underline"
-                    >
-                      Editar
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        to="/oportunidades/$id"
+                        params={{ id: lead.id }}
+                        className="inline-flex items-center -my-2 px-1 py-2 text-sm font-medium text-[#0E3A52] hover:underline"
+                      >
+                        Ver
+                      </Link>
+                      <Link
+                        to="/oportunidades/$id/editar"
+                        params={{ id: lead.id }}
+                        className="inline-flex items-center -my-2 px-1 py-2 text-sm font-medium text-[#0E3A52] hover:underline"
+                      >
+                        Editar
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

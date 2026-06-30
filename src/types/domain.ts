@@ -1,5 +1,12 @@
 export type AiScore = 'quente' | 'morno' | 'frio'
 
+export function scoreToLabel(score: string): AiScore {
+  const n = Number(score)
+  if (n >= 80) return 'quente'
+  if (n >= 50) return 'morno'
+  return 'frio'
+}
+
 export interface AiQualification {
   id: string
   leadId: string
