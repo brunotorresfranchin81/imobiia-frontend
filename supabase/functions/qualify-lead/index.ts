@@ -50,26 +50,12 @@ Deno.serve(async (req: Request) => {
   let callerCompanyId = user.app_metadata?.company_id as string | undefined
 
   if (!callerCompanyId) {
-    const { data: profile, error: profileError } = await adminClient
+    const { data: profile } = await adminClient
       .from('profiles')
       .select('company_id')
       .eq('id', user.id)
       .single()
     callerCompanyId = profile?.company_id as string | undefined
-
-    // LOG TEMPORÁRIO DE DIAGNÓSTICO
-    console.log(JSON.stringify({
-      module: 'norma-ai-qualifier',
-      action: 'debug_company_id_resolution',
-      userId: user.id,
-      appMetadataCompanyId: user.app_metadata?.company_id ?? null,
-      profileQueryResult: profile ?? null,
-      profileQueryError: profileError ? profileError.message : null,
-      profileQueryCode: profileError ? (profileError as { code?: string }).code ?? null : null,
-      resolvedCallerCompanyId: callerCompanyId ?? null,
-      serviceRoleKeyLength: supabaseServiceRoleKey.length,
-      timestamp: new Date().toISOString(),
-    }))
   }
 
   if (!callerCompanyId) {
@@ -93,17 +79,6 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-
-  // LOG TEMPORÁRIO DE DIAGNÓSTICO
-  console.log(JSON.stringify({
-    module: 'norma-ai-qualifier',
-    action: 'debug_company_id_comparison',
-    leadId,
-    leadCompanyId: lead.company_id,
-    callerCompanyId,
-    match: lead.company_id === callerCompanyId,
-    timestamp: new Date().toISOString(),
-  }))
 
   if (lead.company_id !== callerCompanyId) {
     return new Response(JSON.stringify({ error: 'Forbidden' }), {
