@@ -10,7 +10,7 @@ export function scoreToLabel(score: string): AiScore {
 export interface AiQualification {
   id: string
   leadId: string
-  score: AiScore
+  score: string
   reasoning: string
   suggestedAction: string
   generatedAt: string
