@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import { getAuthContext } from './auth'
 import { DataLayerError } from './errors'
 import type { Database } from './database.types'
+import type { StatusHistoryEntry } from '#/types/domain'
 
 export type Lead = Database['public']['Tables']['leads']['Row']
 export type LeadSource = Database['public']['Enums']['lead_source']
@@ -95,4 +96,21 @@ export async function getLeadWithDetails(id: string): Promise<LeadWithDetails> {
   if (error) throw new DataLayerError('leads.getWithDetails', error)
   const { profiles, ...lead } = data as Lead & { profiles: { full_name: string } | null }
   return { ...lead, corretor_name: profiles?.full_name ?? null }
+}
+
+export async function getStatusHistory(leadId: string): Promise<StatusHistoryEntry[]> {
+  const { data, error } = await supabase
+    .from('lead_status_history')
+    .select('id, lead_id, old_status, new_status, changed_at, profiles!lead_status_history_changed_by_fkey(id, full_name)')
+    .eq('lead_id', leadId)
+    .order('changed_at', { ascending: true })
+  if (error) throw new DataLayerError('leads.getStatusHistory', error)
+  return (data ?? []).map(row => ({
+    id: row.id,
+    leadId: row.lead_id,
+    oldStatus: row.old_status,
+    newStatus: row.new_status,
+    changedAt: row.changed_at,
+    changedBy: (row as any).profiles ?? null,
+  }))
 }
