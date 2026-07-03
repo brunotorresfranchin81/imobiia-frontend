@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { Sparkles } from 'lucide-react'
-import { getLeadWithDetails } from '#/lib/leads'
+import { getLeadWithDetails, getStatusHistory } from '#/lib/leads'
 import { qualifyLead, getLatestAiScore, generateSummary, getLatestSummary } from '#/lib/ai'
 import { scoreToLabel } from '#/types/domain'
 import type { AiQualification, AiScore, AiSummary } from '#/types/domain'
@@ -10,12 +10,13 @@ import { Button } from '#/components/ui/button'
 
 export const Route = createFileRoute('/_authenticated/oportunidades/$id')({
   loader: async ({ params }) => {
-    const [lead, aiScore, summary] = await Promise.all([
+    const [lead, aiScore, summary, history] = await Promise.all([
       getLeadWithDetails(params.id),
       getLatestAiScore(params.id),
       getLatestSummary(params.id),
+      getStatusHistory(params.id),
     ])
-    return { lead, aiScore, summary }
+    return { lead, aiScore, summary, history }
   },
   pendingComponent: () => (
     <div className="p-8 text-sm text-muted-foreground">Carregando...</div>
@@ -118,7 +119,7 @@ function SummaryCard({ summary }: { summary: AiSummary }) {
 }
 
 function OportunidadeDetailPage() {
-  const { lead, aiScore: initialAiScore, summary: initialSummary } = Route.useLoaderData()
+  const { lead, aiScore: initialAiScore, summary: initialSummary, history } = Route.useLoaderData()
   const [aiScore, setAiScore] = useState<AiQualification | null>(initialAiScore)
   const [isQualifying, setIsQualifying] = useState(false)
   const [qualifyError, setQualifyError] = useState<string | null>(null)
@@ -151,6 +152,9 @@ function OportunidadeDetailPage() {
       setIsSummarizing(false)
     }
   }
+
+  const statusLabel = (s: string | null): string =>
+    s ? (STATUS_LABELS[s as LeadStatus] ?? s) : '—'
 
   return (
     <>
@@ -283,9 +287,27 @@ function OportunidadeDetailPage() {
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
             Histórico de Status
           </h2>
-          <p className="text-sm text-gray-500">
-            Histórico de status disponível em breve.
-          </p>
+          {history.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              Nenhum histórico registrado para este lead.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {history.map(entry => (
+                <li key={entry.id} className="flex flex-col gap-0.5 border-l-2 border-gray-200 pl-3">
+                  <span className="text-sm font-medium text-gray-900">
+                    {entry.oldStatus === null
+                      ? `Lead criado como ${statusLabel(entry.newStatus)}`
+                      : `${statusLabel(entry.oldStatus)} → ${statusLabel(entry.newStatus)}`}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {new Date(entry.changedAt).toLocaleString('pt-BR')}
+                    {entry.changedBy && ` · ${entry.changedBy.full_name}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
 
