@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { Sparkles } from 'lucide-react'
-import { getLeadById } from '#/lib/leads'
+import { getLeadWithDetails } from '#/lib/leads'
 import { qualifyLead, getLatestAiScore, generateSummary, getLatestSummary } from '#/lib/ai'
 import { scoreToLabel } from '#/types/domain'
 import type { AiQualification, AiScore, AiSummary } from '#/types/domain'
@@ -11,7 +11,7 @@ import { Button } from '#/components/ui/button'
 export const Route = createFileRoute('/_authenticated/oportunidades/$id')({
   loader: async ({ params }) => {
     const [lead, aiScore, summary] = await Promise.all([
-      getLeadById(params.id),
+      getLeadWithDetails(params.id),
       getLatestAiScore(params.id),
       getLatestSummary(params.id),
     ])
@@ -189,6 +189,7 @@ function OportunidadeDetailPage() {
             <div className="flex flex-col gap-3">
               <LeadInfoRow label="E-mail" value={lead.email} />
               <LeadInfoRow label="Telefone" value={lead.phone} />
+              <LeadInfoRow label="Corretor" value={lead.corretor_name ?? '—'} />
               <LeadInfoRow
                 label="Origem"
                 value={lead.source ? SOURCE_LABELS[lead.source] : null}
@@ -277,6 +278,15 @@ function OportunidadeDetailPage() {
             </div>
           </div>
         </div>
+
+        <section className="mt-6 rounded-lg border bg-white p-5 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+            Histórico de Status
+          </h2>
+          <p className="text-sm text-gray-500">
+            Histórico de status disponível em breve.
+          </p>
+        </section>
       </div>
 
       <Outlet />

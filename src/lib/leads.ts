@@ -83,3 +83,16 @@ export async function updateLead(id: string, formData: LeadFormData): Promise<Le
   if (error) throw new DataLayerError('leads.update', error)
   return data
 }
+
+export type LeadWithDetails = Lead & { corretor_name: string | null }
+
+export async function getLeadWithDetails(id: string): Promise<LeadWithDetails> {
+  const { data, error } = await supabase
+    .from('leads')
+    .select('*, profiles!leads_assigned_to_fkey(full_name)')
+    .eq('id', id)
+    .single()
+  if (error) throw new DataLayerError('leads.getWithDetails', error)
+  const { profiles, ...lead } = data as Lead & { profiles: { full_name: string } | null }
+  return { ...lead, corretor_name: profiles?.full_name ?? null }
+}
