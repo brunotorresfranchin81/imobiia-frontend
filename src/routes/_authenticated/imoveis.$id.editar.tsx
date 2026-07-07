@@ -133,6 +133,14 @@ function ImoveisEditarPage() {
             status: property.status,
             area_m2: property.area_m2 != null ? String(property.area_m2) : '',
             price: property.price != null ? String(Number(property.price)) : '',
+            bedrooms: property.bedrooms,
+            bathrooms: property.bathrooms,
+            suites: property.suites,
+            parking_spots: property.parking_spots,
+            published: property.published,
+            featured: property.featured,
+            slug: property.slug,
+            operation_type: property.operation_type,
           }}
           onSubmit={(data) => handleSubmit(data)}
           isLoading={isLoading}
