@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { PropertyFormData, PropertyType, PropertyStatus } from '#/lib/properties'
+import type { PropertyFormData, PropertyType, PropertyStatus, OperationType } from '#/lib/properties'
+import { generateSlug } from '#/lib/properties'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
@@ -19,6 +20,11 @@ const PROPERTY_STATUSES: { value: PropertyStatus; label: string }[] = [
   { value: 'arquivado', label: 'Arquivado' },
 ]
 
+const OPERATION_TYPES: { value: OperationType; label: string }[] = [
+  { value: 'venda', label: 'Venda' },
+  { value: 'aluguel', label: 'Aluguel' },
+]
+
 interface FormState {
   title: string
   description: string
@@ -29,6 +35,14 @@ interface FormState {
   status: PropertyStatus
   area_m2: string
   price: string
+  bedrooms: string
+  bathrooms: string
+  suites: string
+  parking_spots: string
+  published: boolean
+  featured: boolean
+  slug: string
+  operation_type: OperationType
 }
 
 interface PropertyFormDefaultValues {
@@ -41,6 +55,14 @@ interface PropertyFormDefaultValues {
   status?: PropertyStatus | null
   area_m2?: string
   price?: string
+  bedrooms?: number | null
+  bathrooms?: number | null
+  suites?: number | null
+  parking_spots?: number | null
+  published?: boolean | null
+  featured?: boolean | null
+  slug?: string | null
+  operation_type?: OperationType | null
 }
 
 interface PropertyFormProps {
@@ -60,7 +82,16 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
     status: defaultValues?.status ?? 'ativo',
     area_m2: defaultValues?.area_m2 ?? '',
     price: defaultValues?.price ?? '',
+    bedrooms: defaultValues?.bedrooms != null ? String(defaultValues.bedrooms) : '',
+    bathrooms: defaultValues?.bathrooms != null ? String(defaultValues.bathrooms) : '',
+    suites: defaultValues?.suites != null ? String(defaultValues.suites) : '',
+    parking_spots: defaultValues?.parking_spots != null ? String(defaultValues.parking_spots) : '',
+    published: defaultValues?.published ?? false,
+    featured: defaultValues?.featured ?? false,
+    slug: defaultValues?.slug ?? '',
+    operation_type: defaultValues?.operation_type ?? 'venda',
   })
+  const [slugTouched, setSlugTouched] = useState(Boolean(defaultValues?.slug))
   const [error, setError] = useState<string | null>(null)
 
   function handleChange(field: keyof FormState) {
@@ -69,6 +100,29 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
     ) => {
       setValues((prev) => ({ ...prev, [field]: e.target.value }))
     }
+  }
+
+  function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const title = e.target.value
+    setValues((prev) => ({
+      ...prev,
+      title,
+      slug: slugTouched ? prev.slug : generateSlug(title),
+    }))
+  }
+
+  function handleSlugChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setSlugTouched(true)
+    setValues((prev) => ({ ...prev, slug: e.target.value }))
+  }
+
+  function handlePublishedChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const published = e.target.checked
+    setValues((prev) => ({ ...prev, published, featured: published ? prev.featured : false }))
+  }
+
+  function handleFeaturedChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setValues((prev) => ({ ...prev, featured: e.target.checked }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -85,6 +139,14 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
         status: values.status,
         area_m2: values.area_m2 ? Number(values.area_m2) : null,
         price: Number(values.price),
+        bedrooms: values.bedrooms ? Number(values.bedrooms) : null,
+        bathrooms: values.bathrooms ? Number(values.bathrooms) : null,
+        suites: values.suites ? Number(values.suites) : null,
+        parking_spots: values.parking_spots ? Number(values.parking_spots) : null,
+        published: values.published,
+        featured: values.published ? values.featured : false,
+        slug: values.slug || null,
+        operation_type: values.operation_type,
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar imóvel')
@@ -109,7 +171,7 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
           <Input
             id="title"
             value={values.title}
-            onChange={handleChange('title')}
+            onChange={handleTitleChange}
             required
             placeholder="Ex: Apartamento 3 quartos no Centro"
           />
@@ -217,6 +279,129 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
             required
             placeholder="0,00"
           />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold text-gray-900">Características</h2>
+        <div className="grid gap-4 sm:grid-cols-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="bedrooms">Quartos</Label>
+            <Input
+              id="bedrooms"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              step="1"
+              value={values.bedrooms}
+              onChange={handleChange('bedrooms')}
+              placeholder="0"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="bathrooms">Banheiros</Label>
+            <Input
+              id="bathrooms"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              step="1"
+              value={values.bathrooms}
+              onChange={handleChange('bathrooms')}
+              placeholder="0"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="suites">Suítes</Label>
+            <Input
+              id="suites"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              step="1"
+              value={values.suites}
+              onChange={handleChange('suites')}
+              placeholder="0"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="parking_spots">Vagas</Label>
+            <Input
+              id="parking_spots"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              step="1"
+              value={values.parking_spots}
+              onChange={handleChange('parking_spots')}
+              placeholder="0"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold text-gray-900">Publicação no Site</h2>
+
+        <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2.5">
+          <div>
+            <Label htmlFor="published">Publicar no site</Label>
+            <p className="text-xs text-gray-500">Controla se o imóvel aparece no site</p>
+          </div>
+          <input
+            id="published"
+            type="checkbox"
+            checked={values.published}
+            onChange={handlePublishedChange}
+            className="h-5 w-5 rounded border-input text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </div>
+
+        {values.published && (
+          <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2.5">
+            <div>
+              <Label htmlFor="featured">Destaque na home</Label>
+              <p className="text-xs text-gray-500">Exibe o imóvel em destaque na home do site</p>
+            </div>
+            <input
+              id="featured"
+              type="checkbox"
+              checked={values.featured}
+              onChange={handleFeaturedChange}
+              className="h-5 w-5 rounded border-input text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="slug">Slug (URL)</Label>
+            <Input
+              id="slug"
+              value={values.slug}
+              onChange={handleSlugChange}
+              placeholder="apartamento-2-quartos-tijuca"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="operation_type">Tipo de operação</Label>
+            <select
+              id="operation_type"
+              value={values.operation_type}
+              onChange={handleChange('operation_type')}
+              className={selectClass}
+            >
+              {OPERATION_TYPES.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

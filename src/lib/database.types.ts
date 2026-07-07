@@ -719,13 +719,17 @@ export type Database = {
           created_by: string
           description: string | null
           documents: string[] | null
+          featured: boolean | null
           id: string
           neighborhood: string | null
+          operation_type: Database["public"]["Enums"]["property_intent"] | null
           parking_spots: number | null
           photos: string[] | null
           price: number | null
           property_type: Database["public"]["Enums"]["property_type"] | null
+          published: boolean | null
           reference_code: string
+          slug: string | null
           state: string | null
           status: Database["public"]["Enums"]["property_status"] | null
           suites: number | null
@@ -744,13 +748,17 @@ export type Database = {
           created_by: string
           description?: string | null
           documents?: string[] | null
+          featured?: boolean | null
           id?: string
           neighborhood?: string | null
+          operation_type?: Database["public"]["Enums"]["property_intent"] | null
           parking_spots?: number | null
           photos?: string[] | null
           price?: number | null
           property_type?: Database["public"]["Enums"]["property_type"] | null
+          published?: boolean | null
           reference_code: string
+          slug?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["property_status"] | null
           suites?: number | null
@@ -769,13 +777,17 @@ export type Database = {
           created_by?: string
           description?: string | null
           documents?: string[] | null
+          featured?: boolean | null
           id?: string
           neighborhood?: string | null
+          operation_type?: Database["public"]["Enums"]["property_intent"] | null
           parking_spots?: number | null
           photos?: string[] | null
           price?: number | null
           property_type?: Database["public"]["Enums"]["property_type"] | null
+          published?: boolean | null
           reference_code?: string
+          slug?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["property_status"] | null
           suites?: number | null

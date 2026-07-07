@@ -6,6 +6,7 @@ import type { Database } from './database.types'
 export type Property = Database['public']['Tables']['properties']['Row']
 export type PropertyType = Database['public']['Enums']['property_type']
 export type PropertyStatus = Database['public']['Enums']['property_status']
+export type OperationType = Database['public']['Enums']['property_intent']
 
 export type PropertyFormData = {
   title: string
@@ -17,6 +18,26 @@ export type PropertyFormData = {
   status: PropertyStatus
   area_m2?: number | null
   price: number
+  bedrooms?: number | null
+  bathrooms?: number | null
+  suites?: number | null
+  parking_spots?: number | null
+  published?: boolean
+  featured?: boolean
+  slug?: string | null
+  operation_type?: OperationType | null
+}
+
+export function generateSlug(title: string): string {
+  return title
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
 export async function listProperties(): Promise<Property[]> {
