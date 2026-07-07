@@ -37,10 +37,18 @@ export async function listCorretores(): Promise<Corretor[]> {
 }
 
 export async function listLeads(): Promise<Lead[]> {
-  const { data, error } = await supabase
+  const { role, userId } = await getAuthContext()
+
+  const baseQuery = supabase
     .from('leads')
     .select('*')
     .order('created_at', { ascending: false })
+
+  const { data, error } = await (
+    role === 'corretor'
+      ? baseQuery.or(`assigned_to.eq.${userId},assigned_to.is.null`)
+      : baseQuery
+  )
 
   if (error) throw new DataLayerError('leads.list', error)
   return data ?? []
