@@ -15,8 +15,8 @@ function ImoveisNovoPage() {
   async function handleSubmit(data: PropertyFormData) {
     setIsLoading(true)
     try {
-      await createProperty(data)
-      void router.navigate({ to: '/imoveis' })
+      const newProperty = await createProperty(data)
+      void router.navigate({ to: '/imoveis/$id/editar', params: { id: newProperty.id } })
     } finally {
       setIsLoading(false)
     }
