@@ -18,6 +18,7 @@ const SOURCE_LABELS: Record<LeadSource, string> = {
   site: 'Site',
   portal: 'Portal',
   indicacao: 'Indicação',
+  anuncio_proprietario: 'Anúncio do Proprietário',
   outro: 'Outro',
 }
 

@@ -31,10 +31,14 @@ interface FormState {
   address: string
   neighborhood: string
   city: string
+  state: string
+  zip_code: string
   property_type: PropertyType
   status: PropertyStatus
   area_m2: string
   price: string
+  condominio_valor: string
+  iptu_valor: string
   bedrooms: string
   bathrooms: string
   suites: string
@@ -51,10 +55,14 @@ interface PropertyFormDefaultValues {
   address?: string
   neighborhood?: string | null
   city?: string | null
+  state?: string | null
+  zip_code?: string | null
   property_type?: PropertyType | null
   status?: PropertyStatus | null
   area_m2?: string
   price?: string
+  condominio_valor?: string
+  iptu_valor?: string
   bedrooms?: number | null
   bathrooms?: number | null
   suites?: number | null
@@ -78,10 +86,14 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
     address: defaultValues?.address ?? '',
     neighborhood: defaultValues?.neighborhood ?? '',
     city: defaultValues?.city ?? '',
+    state: defaultValues?.state ?? '',
+    zip_code: defaultValues?.zip_code ?? '',
     property_type: defaultValues?.property_type ?? 'apartamento',
     status: defaultValues?.status ?? 'ativo',
     area_m2: defaultValues?.area_m2 ?? '',
     price: defaultValues?.price ?? '',
+    condominio_valor: defaultValues?.condominio_valor ?? '',
+    iptu_valor: defaultValues?.iptu_valor ?? '',
     bedrooms: defaultValues?.bedrooms != null ? String(defaultValues.bedrooms) : '',
     bathrooms: defaultValues?.bathrooms != null ? String(defaultValues.bathrooms) : '',
     suites: defaultValues?.suites != null ? String(defaultValues.suites) : '',
@@ -135,10 +147,14 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
         address: values.address,
         neighborhood: values.neighborhood || null,
         city: values.city || null,
+        state: values.state || null,
+        zip_code: values.zip_code || null,
         property_type: values.property_type,
         status: values.status,
         area_m2: values.area_m2 ? Number(values.area_m2) : null,
         price: Number(values.price),
+        condominio_valor: values.condominio_valor ? Number(values.condominio_valor) : null,
+        iptu_valor: values.iptu_valor ? Number(values.iptu_valor) : null,
         bedrooms: values.bedrooms ? Number(values.bedrooms) : null,
         bathrooms: values.bathrooms ? Number(values.bathrooms) : null,
         suites: values.suites ? Number(values.suites) : null,
@@ -221,6 +237,27 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
         </div>
 
         <div className="space-y-1.5">
+          <Label htmlFor="state">Estado (UF)</Label>
+          <Input
+            id="state"
+            value={values.state}
+            onChange={handleChange('state')}
+            maxLength={2}
+            placeholder="RJ"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="zip_code">CEP</Label>
+          <Input
+            id="zip_code"
+            value={values.zip_code}
+            onChange={handleChange('zip_code')}
+            placeholder="00000-000"
+          />
+        </div>
+
+        <div className="space-y-1.5">
           <Label htmlFor="property_type">Tipo</Label>
           <select
             id="property_type"
@@ -277,6 +314,34 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
             value={values.price}
             onChange={handleChange('price')}
             required
+            placeholder="0,00"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="condominio_valor">Condomínio (R$)</Label>
+          <Input
+            id="condominio_valor"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            value={values.condominio_valor}
+            onChange={handleChange('condominio_valor')}
+            placeholder="0,00"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="iptu_valor">IPTU (R$)</Label>
+          <Input
+            id="iptu_valor"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            value={values.iptu_valor}
+            onChange={handleChange('iptu_valor')}
             placeholder="0,00"
           />
         </div>
