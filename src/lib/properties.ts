@@ -14,10 +14,14 @@ export type PropertyFormData = {
   address: string
   neighborhood?: string | null
   city?: string | null
+  state?: string | null
+  zip_code?: string | null
   property_type: PropertyType
   status: PropertyStatus
   area_m2?: number | null
   price: number
+  condominio_valor?: number | null
+  iptu_valor?: number | null
   bedrooms?: number | null
   bathrooms?: number | null
   suites?: number | null

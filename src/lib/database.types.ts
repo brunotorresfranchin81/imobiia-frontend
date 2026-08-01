@@ -455,6 +455,7 @@ export type Database = {
           id: string
           notes: string | null
           phone: string | null
+          photo_urls: string[] | null
           preferred_neighborhoods: string[] | null
           source: Database["public"]["Enums"]["lead_source"] | null
           status: Database["public"]["Enums"]["lead_status"] | null
@@ -471,6 +472,7 @@ export type Database = {
           id?: string
           notes?: string | null
           phone?: string | null
+          photo_urls?: string[] | null
           preferred_neighborhoods?: string[] | null
           source?: Database["public"]["Enums"]["lead_source"] | null
           status?: Database["public"]["Enums"]["lead_status"] | null
@@ -487,6 +489,7 @@ export type Database = {
           id?: string
           notes?: string | null
           phone?: string | null
+          photo_urls?: string[] | null
           preferred_neighborhoods?: string[] | null
           source?: Database["public"]["Enums"]["lead_source"] | null
           status?: Database["public"]["Enums"]["lead_status"] | null
@@ -715,12 +718,14 @@ export type Database = {
           bedrooms: number | null
           city: string | null
           company_id: string
+          condominio_valor: number | null
           created_at: string | null
           created_by: string
           description: string | null
           documents: string[] | null
           featured: boolean | null
           id: string
+          iptu_valor: number | null
           neighborhood: string | null
           operation_type: Database["public"]["Enums"]["property_intent"] | null
           parking_spots: number | null
@@ -744,12 +749,14 @@ export type Database = {
           bedrooms?: number | null
           city?: string | null
           company_id: string
+          condominio_valor?: number | null
           created_at?: string | null
           created_by: string
           description?: string | null
           documents?: string[] | null
           featured?: boolean | null
           id?: string
+          iptu_valor?: number | null
           neighborhood?: string | null
           operation_type?: Database["public"]["Enums"]["property_intent"] | null
           parking_spots?: number | null
@@ -773,12 +780,14 @@ export type Database = {
           bedrooms?: number | null
           city?: string | null
           company_id?: string
+          condominio_valor?: number | null
           created_at?: string | null
           created_by?: string
           description?: string | null
           documents?: string[] | null
           featured?: boolean | null
           id?: string
+          iptu_valor?: number | null
           neighborhood?: string | null
           operation_type?: Database["public"]["Enums"]["property_intent"] | null
           parking_spots?: number | null
@@ -808,6 +817,47 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_images: {
+        Row: {
+          company_id: string
+          created_at: string
+          display_order: number
+          id: string
+          is_main: boolean
+          property_id: string
+          storage_path: string
+          url: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_main?: boolean
+          property_id: string
+          storage_path: string
+          url: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_main?: boolean
+          property_id?: string
+          storage_path?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_images_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -1067,7 +1117,7 @@ export type Database = {
         | "follow_up"
       interest_level: "frio" | "morno" | "quente"
       lead_intent: "compra" | "aluguel" | "indefinido"
-      lead_source: "site" | "portal" | "indicacao" | "outro"
+      lead_source: "site" | "portal" | "indicacao" | "outro" | "anuncio_proprietario"
       lead_status:
         | "novo"
         | "qualificado"
@@ -1256,7 +1306,7 @@ export const Constants = {
       ],
       interest_level: ["frio", "morno", "quente"],
       lead_intent: ["compra", "aluguel", "indefinido"],
-      lead_source: ["site", "portal", "indicacao", "outro"],
+      lead_source: ["site", "portal", "indicacao", "outro", "anuncio_proprietario"],
       lead_status: [
         "novo",
         "qualificado",
