@@ -301,7 +301,7 @@ function ImoveisEditarPage() {
           <textarea
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            rows={4}
+            rows={12}
             maxLength={2200}
             className="mb-3 w-full rounded-md border border-input px-3 py-2 text-sm"
             placeholder="Legenda do post..."
