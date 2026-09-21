@@ -8,6 +8,13 @@ import {
   deletePropertyImage,
 } from '#/lib/properties'
 import type { PropertyFormData, PropertyImage } from '#/lib/properties'
+import {
+  requestSocialPost,
+  listPostQueueByProperty,
+  generatePropertyCaption,
+  POST_QUEUE_STATUS_LABELS,
+} from '#/lib/social-posts'
+import type { PostQueueItem } from '#/lib/social-posts'
 import { PropertyForm } from '#/components/property-form'
 import { Button } from '#/components/ui/button'
 
@@ -19,17 +26,18 @@ interface PendingUpload {
 
 export const Route = createFileRoute('/_authenticated/imoveis/$id/editar')({
   loader: async ({ params }) => {
-    const [property, images] = await Promise.all([
+    const [property, images, postQueue] = await Promise.all([
       getPropertyById(params.id),
       listPropertyImages(params.id),
+      listPostQueueByProperty(params.id),
     ])
-    return { property, images }
+    return { property, images, postQueue }
   },
   component: ImoveisEditarPage,
 })
 
 function ImoveisEditarPage() {
-  const { property, images: initialImages } = Route.useLoaderData()
+  const { property, images: initialImages, postQueue: initialPostQueue } = Route.useLoaderData()
   const { id } = Route.useParams()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -39,6 +47,15 @@ function ImoveisEditarPage() {
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
   const [imagesError, setImagesError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [postQueue, setPostQueue] = useState<PostQueueItem[]>(initialPostQueue)
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(
+    initialImages.find((img) => img.isMain)?.id ?? initialImages[0]?.id ?? null,
+  )
+  const [caption, setCaption] = useState(() => generatePropertyCaption(property))
+  const [isPosting, setIsPosting] = useState(false)
+  const [postError, setPostError] = useState<string | null>(null)
+  const [postSuccess, setPostSuccess] = useState(false)
 
   const activeCount = images.length + pendingUploads.filter((p) => !p.error).length
 
@@ -91,6 +108,29 @@ function ImoveisEditarPage() {
       if (target) URL.revokeObjectURL(target.previewUrl)
       return prev.filter((p) => p.tempId !== tempId)
     })
+  }
+
+  async function handlePostToSocial() {
+    if (!selectedImageId) return
+    const image = images.find((img) => img.id === selectedImageId)
+    if (!image) return
+
+    setPostError(null)
+    setPostSuccess(false)
+    setIsPosting(true)
+    try {
+      const created = await requestSocialPost({
+        propertyId: id,
+        caption,
+        imageUrl: image.url,
+      })
+      setPostQueue((prev) => [created, ...prev])
+      setPostSuccess(true)
+    } catch (err) {
+      setPostError(err instanceof Error ? err.message : 'Erro ao enviar para aprovação')
+    } finally {
+      setIsPosting(false)
+    }
   }
 
   async function handleDelete(image: PropertyImage) {
@@ -234,6 +274,71 @@ function ImoveisEditarPage() {
           {activeCount}/20 fotos — JPG, PNG ou WebP, máx. 5MB cada
         </p>
       </div>
+
+      {images.length > 0 && (
+        <div className="mt-8 max-w-2xl">
+          <h2 className="mb-1 text-lg font-semibold text-gray-900">Instagram / Facebook</h2>
+          <p className="mb-4 text-sm text-gray-500">
+            Escolha a foto e a legenda. O post fica em aprovação com o Vagner pelo WhatsApp
+            antes de sair no ar — nada é publicado automaticamente.
+          </p>
+
+          <div className="mb-4 grid grid-cols-3 gap-3 sm:grid-cols-4">
+            {images.map((image) => (
+              <button
+                key={image.id}
+                type="button"
+                onClick={() => setSelectedImageId(image.id)}
+                className={`overflow-hidden rounded-lg border-2 ${
+                  selectedImageId === image.id ? 'border-primary' : 'border-transparent'
+                }`}
+              >
+                <img src={image.url} alt="" className="aspect-square w-full object-cover" />
+              </button>
+            ))}
+          </div>
+
+          <textarea
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            rows={4}
+            maxLength={2200}
+            className="mb-3 w-full rounded-md border border-input px-3 py-2 text-sm"
+            placeholder="Legenda do post..."
+          />
+
+          {postError && (
+            <div className="mb-3 rounded-md bg-red-50 p-3 text-sm text-red-700">{postError}</div>
+          )}
+          {postSuccess && (
+            <div className="mb-3 rounded-md bg-green-50 p-3 text-sm text-green-700">
+              Enviado para aprovação do Vagner no WhatsApp.
+            </div>
+          )}
+
+          <Button
+            type="button"
+            disabled={!selectedImageId || !caption.trim() || isPosting}
+            onClick={() => { void handlePostToSocial() }}
+          >
+            {isPosting ? 'Enviando...' : 'Postar no Instagram/Facebook'}
+          </Button>
+
+          {postQueue.length > 0 && (
+            <div className="mt-4 space-y-1.5">
+              <h3 className="text-sm font-medium text-gray-700">Histórico de posts deste imóvel</h3>
+              {postQueue.map((post) => (
+                <div key={post.id} className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm">
+                  <span className="truncate text-gray-600">{post.caption}</span>
+                  <span className="ml-3 shrink-0 text-xs text-gray-500">
+                    {POST_QUEUE_STATUS_LABELS[post.status] ?? post.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
