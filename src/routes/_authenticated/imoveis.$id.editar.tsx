@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import {
   getPropertyById,
@@ -15,6 +15,8 @@ import {
   POST_QUEUE_STATUS_LABELS,
 } from '#/lib/social-posts'
 import type { PostQueueItem } from '#/lib/social-posts'
+import { getInstagramAspectRatioWarning, loadImageDimensions } from '#/lib/social-image'
+import type { ImageDimensions } from '#/lib/social-image'
 import { PropertyForm } from '#/components/property-form'
 import { Button } from '#/components/ui/button'
 
@@ -58,6 +60,31 @@ function ImoveisEditarPage() {
   const [postSuccess, setPostSuccess] = useState(false)
 
   const activeCount = images.length + pendingUploads.filter((p) => !p.error).length
+
+  // Proporção da foto escolhida: o Instagram só aceita 0,8 a 1,91. Só avisa, não bloqueia.
+  const selectedImage = images.find((img) => img.id === selectedImageId) ?? null
+  const selectedImageUrl = selectedImage?.url ?? null
+  const [measured, setMeasured] = useState<{ url: string; dimensions: ImageDimensions } | null>(null)
+
+  useEffect(() => {
+    if (!selectedImageUrl) return
+    let cancelled = false
+    loadImageDimensions(selectedImageUrl)
+      .then((dimensions) => {
+        if (!cancelled) setMeasured({ url: selectedImageUrl, dimensions })
+      })
+      .catch(() => {
+        // sem medida, sem aviso: o n8n ainda trata a proporção inválida no envio
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedImageUrl])
+
+  const ratioWarning =
+    measured && measured.url === selectedImageUrl
+      ? getInstagramAspectRatioWarning(measured.dimensions)
+      : null
 
   async function handleSubmit(data: PropertyFormData) {
     setIsLoading(true)
@@ -297,6 +324,15 @@ function ImoveisEditarPage() {
               </button>
             ))}
           </div>
+
+          {ratioWarning && (
+            <div
+              role="status"
+              className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+            >
+              {ratioWarning}
+            </div>
+          )}
 
           <textarea
             value={caption}
