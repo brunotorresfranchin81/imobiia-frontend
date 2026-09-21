@@ -624,6 +624,69 @@ export type Database = {
           },
         ]
       }
+      post_queue: {
+        Row: {
+          approved_at: string | null
+          caption: string
+          company_id: string
+          created_at: string
+          error_message: string | null
+          fb_post_id: string | null
+          id: string
+          idempotency_hash: string
+          ig_post_id: string | null
+          image_url: string
+          property_id: string | null
+          published_at: string | null
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          caption: string
+          company_id: string
+          created_at?: string
+          error_message?: string | null
+          fb_post_id?: string | null
+          id?: string
+          idempotency_hash?: string
+          ig_post_id?: string | null
+          image_url: string
+          property_id?: string | null
+          published_at?: string | null
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          caption?: string
+          company_id?: string
+          created_at?: string
+          error_message?: string | null
+          fb_post_id?: string | null
+          id?: string
+          idempotency_hash?: string
+          ig_post_id?: string | null
+          image_url?: string
+          property_id?: string | null
+          published_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_queue_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_queue_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_history: {
         Row: {
           changed_at: string | null
