@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Users } from 'lucide-react'
 import { listLeads } from '#/lib/leads'
 import type { Lead, LeadSource, LeadStatus } from '#/lib/leads'
+import { CANAL_LABELS, canalLabel } from '#/lib/canal'
+import type { Canal } from '#/lib/canal'
 import { Button } from '#/components/ui/button'
 
 export const Route = createFileRoute('/_authenticated/oportunidades/')({
@@ -60,8 +63,19 @@ function StatusBadge({ status }: { status: Lead['status'] }) {
   )
 }
 
+type CanalFilter = 'todos' | Canal | 'sem_canal'
+
+function matchesCanal(origem: string | null, filter: CanalFilter) {
+  if (filter === 'todos') return true
+  const isKnown = origem != null && Object.hasOwn(CANAL_LABELS, origem)
+  if (filter === 'sem_canal') return !isKnown
+  return origem === filter
+}
+
 function OportunidadesIndexPage() {
   const leads = Route.useLoaderData()
+  const [canalFilter, setCanalFilter] = useState<CanalFilter>('todos')
+  const filteredLeads = leads.filter((lead) => matchesCanal(lead.origem, canalFilter))
 
   return (
     <div className="p-6 sm:p-8">
@@ -83,72 +97,106 @@ function OportunidadesIndexPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Nome
-                </th>
-                <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 sm:table-cell">
-                  E-mail
-                </th>
-                <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 md:table-cell">
-                  Origem
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Status
-                </th>
-                <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 lg:table-cell">
-                  Orçamento
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {leads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-gray-50">
-                  <td className="max-w-[200px] px-4 py-3">
-                    <div className="truncate font-medium text-gray-900">{lead.full_name}</div>
-                    <div className="truncate text-xs text-gray-400 sm:hidden">{lead.email}</div>
-                  </td>
-                  <td className="hidden px-4 py-3 text-sm text-gray-600 sm:table-cell">
-                    {lead.email}
-                  </td>
-                  <td className="hidden px-4 py-3 text-sm text-gray-600 md:table-cell">
-                    {lead.source ? SOURCE_LABELS[lead.source] : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={lead.status} />
-                  </td>
-                  <td className="hidden px-4 py-3 text-sm text-gray-600 lg:table-cell">
-                    {formatBudget(lead.budget_min, lead.budget_max)}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <Link
-                        to="/oportunidades/$id"
-                        params={{ id: lead.id }}
-                        className="inline-flex items-center -my-2 px-1 py-2 text-sm font-medium text-[#0E3A52] hover:underline"
-                      >
-                        Ver
-                      </Link>
-                      <Link
-                        to="/oportunidades/$id/editar"
-                        params={{ id: lead.id }}
-                        className="inline-flex items-center -my-2 px-1 py-2 text-sm font-medium text-[#0E3A52] hover:underline"
-                      >
-                        Editar
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
+        <>
+          <div className="mb-4 flex items-center gap-2">
+            <label htmlFor="canal-filter" className="text-sm text-gray-500">
+              Canal
+            </label>
+            <select
+              id="canal-filter"
+              value={canalFilter}
+              onChange={(e) => setCanalFilter(e.target.value as CanalFilter)}
+              className="rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="todos">Todos</option>
+              {(Object.keys(CANAL_LABELS) as Canal[]).map((canal) => (
+                <option key={canal} value={canal}>
+                  {CANAL_LABELS[canal]}
+                </option>
               ))}
-            </tbody>
-          </table>
-        </div>
+              <option value="sem_canal">Sem canal</option>
+            </select>
+          </div>
+
+          {filteredLeads.length === 0 ? (
+            <div className="rounded-lg border border-dashed py-12 text-center text-sm text-gray-500">
+              Nenhuma oportunidade neste canal
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Nome
+                    </th>
+                    <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 sm:table-cell">
+                      E-mail
+                    </th>
+                    <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 md:table-cell">
+                      Origem
+                    </th>
+                    <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 md:table-cell">
+                      Canal
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Status
+                    </th>
+                    <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 lg:table-cell">
+                      Orçamento
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {filteredLeads.map((lead) => (
+                    <tr key={lead.id} className="hover:bg-gray-50">
+                      <td className="max-w-[200px] px-4 py-3">
+                        <div className="truncate font-medium text-gray-900">{lead.full_name}</div>
+                        <div className="truncate text-xs text-gray-400 sm:hidden">{lead.email}</div>
+                      </td>
+                      <td className="hidden px-4 py-3 text-sm text-gray-600 sm:table-cell">
+                        {lead.email}
+                      </td>
+                      <td className="hidden px-4 py-3 text-sm text-gray-600 md:table-cell">
+                        {lead.source ? SOURCE_LABELS[lead.source] : '—'}
+                      </td>
+                      <td className="hidden px-4 py-3 text-sm text-gray-600 md:table-cell">
+                        {canalLabel(lead.origem)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={lead.status} />
+                      </td>
+                      <td className="hidden px-4 py-3 text-sm text-gray-600 lg:table-cell">
+                        {formatBudget(lead.budget_min, lead.budget_max)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <Link
+                            to="/oportunidades/$id"
+                            params={{ id: lead.id }}
+                            className="inline-flex items-center -my-2 px-1 py-2 text-sm font-medium text-[#0E3A52] hover:underline"
+                          >
+                            Ver
+                          </Link>
+                          <Link
+                            to="/oportunidades/$id/editar"
+                            params={{ id: lead.id }}
+                            className="inline-flex items-center -my-2 px-1 py-2 text-sm font-medium text-[#0E3A52] hover:underline"
+                          >
+                            Editar
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

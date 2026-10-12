@@ -6,6 +6,7 @@ import { qualifyLead, getLatestAiScore, generateSummary, getLatestSummary } from
 import { scoreToLabel } from '#/types/domain'
 import type { AiQualification, AiScore, AiSummary } from '#/types/domain'
 import type { LeadSource, LeadStatus } from '#/lib/leads'
+import { canalLabel } from '#/lib/canal'
 import { Button } from '#/components/ui/button'
 
 export const Route = createFileRoute('/_authenticated/oportunidades/$id')({
@@ -199,6 +200,7 @@ function OportunidadeDetailPage() {
                 label="Origem"
                 value={lead.source ? SOURCE_LABELS[lead.source] : null}
               />
+              <LeadInfoRow label="Canal" value={canalLabel(lead.origem)} />
               <LeadInfoRow
                 label="Orçamento"
                 value={formatBudget(lead.budget_min, lead.budget_max)}

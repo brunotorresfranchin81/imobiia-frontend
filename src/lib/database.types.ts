@@ -454,6 +454,7 @@ export type Database = {
           full_name: string
           id: string
           notes: string | null
+          origem: string | null
           phone: string | null
           photo_urls: string[] | null
           preferred_neighborhoods: string[] | null
@@ -471,6 +472,7 @@ export type Database = {
           full_name: string
           id?: string
           notes?: string | null
+          origem?: string | null
           phone?: string | null
           photo_urls?: string[] | null
           preferred_neighborhoods?: string[] | null
@@ -488,6 +490,7 @@ export type Database = {
           full_name?: string
           id?: string
           notes?: string | null
+          origem?: string | null
           phone?: string | null
           photo_urls?: string[] | null
           preferred_neighborhoods?: string[] | null
