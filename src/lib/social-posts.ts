@@ -79,13 +79,93 @@ export function generatePropertyCaption(property: PropertyCaptionSource): string
   return appendPropertyHashtags(blocks.join('\n\n'), property)
 }
 
+const IN_PROGRESS_STATUSES = new Set(['pending_approval', 'approved', 'publishing'])
+
+/**
+ * Post idêntico (mesma empresa + legenda + foto) já existente em post_queue.
+ * - in_progress: pending_approval/approved/publishing — não pode reenviar.
+ * - published: já foi ao ar — só reenvia com confirmação do usuário.
+ * - closed: rejected/failed — pode reenviar normalmente.
+ */
+export type DuplicatePost =
+  | { kind: 'in_progress'; post: PostQueueItem }
+  | { kind: 'published'; post: PostQueueItem; publishedAt: string }
+  | { kind: 'closed'; post: PostQueueItem }
+
+function formatPublishedAt(iso: string): string {
+  const date = new Date(iso)
+  const day = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+  const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  return `${day} às ${time}`
+}
+
+export function describeDuplicatePost(duplicate: DuplicatePost): string {
+  switch (duplicate.kind) {
+    case 'in_progress':
+      return 'Este post já está aguardando aprovação/publicação.'
+    case 'published':
+      return `Este post já foi publicado em ${formatPublishedAt(duplicate.publishedAt)}.`
+    case 'closed':
+      return duplicate.post.status === 'rejected'
+        ? 'Já existe um post idêntico que foi rejeitado.'
+        : 'Já existe um post idêntico que falhou ao publicar.'
+  }
+}
+
+export class DuplicatePostError extends Error {
+  constructor(
+    public readonly duplicate: DuplicatePost,
+    message = describeDuplicatePost(duplicate),
+  ) {
+    super(message)
+    this.name = 'DuplicatePostError'
+  }
+}
+
+/**
+ * Procura posts idênticos (mesma empresa + legenda + foto — os mesmos campos
+ * do idempotency_hash) e devolve o mais relevante: um em andamento tem
+ * prioridade sobre um publicado, que tem prioridade sobre rejected/failed.
+ */
+export async function findDuplicatePost(companyId: string, caption: string, imageUrl: string): Promise<DuplicatePost | null> {
+  const { data, error } = await supabase
+    .from('post_queue')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('caption', caption)
+    .eq('image_url', imageUrl)
+    .order('created_at', { ascending: false })
+
+  if (error) throw new DataLayerError('socialPosts.findDuplicate', error)
+  if (!data?.length) return null
+
+  const inProgress = data.find((post) => IN_PROGRESS_STATUSES.has(post.status))
+  if (inProgress) return { kind: 'in_progress', post: inProgress }
+
+  const published = data.find((post) => post.status === 'published')
+  if (published) return { kind: 'published', post: published, publishedAt: published.published_at ?? published.created_at }
+
+  return { kind: 'closed', post: data[0] }
+}
+
 /**
  * Insere a linha em post_queue (status inicial pending_approval) e avisa o n8n
  * via Edge Function, que envia a foto+legenda pro Vagner aprovar no WhatsApp
  * (Sprint 2A). Nada é publicado aqui — só entra na fila de aprovação.
+ *
+ * Antes de inserir, checa post idêntico: em andamento → DuplicatePostError;
+ * já publicado → DuplicatePostError, a menos que `confirmRepublish` seja true;
+ * rejected/failed → insere normalmente.
  */
-export async function requestSocialPost(input: CreateSocialPostInput): Promise<PostQueueItem> {
+export async function requestSocialPost(
+  input: CreateSocialPostInput,
+  options: { confirmRepublish?: boolean } = {},
+): Promise<PostQueueItem> {
   const { companyId } = await getAuthContext()
+
+  const duplicate = await findDuplicatePost(companyId, input.caption, input.imageUrl)
+  if (duplicate?.kind === 'in_progress') throw new DuplicatePostError(duplicate)
+  if (duplicate?.kind === 'published' && !options.confirmRepublish) throw new DuplicatePostError(duplicate)
 
   const { data, error } = await supabase
     .from('post_queue')
@@ -99,9 +179,18 @@ export async function requestSocialPost(input: CreateSocialPostInput): Promise<P
     .single()
 
   if (error) {
-    // idempotency_hash é único: mesma empresa+legenda+foto já está na fila.
+    // 23505 = idempotency_hash único. Pode ser corrida (outro post entrou
+    // entre a checagem e o insert) ou o índice ainda valer pra qualquer
+    // status. Reconsulta pra explicar o caso real, nunca um texto genérico.
     if (error.code === '23505') {
-      throw new DataLayerError('socialPosts.request', 'Esse post (mesma foto e legenda) já está na fila de aprovação')
+      const current = await findDuplicatePost(companyId, input.caption, input.imageUrl)
+      if (current?.kind === 'in_progress') throw new DuplicatePostError(current)
+      if (current) {
+        throw new DuplicatePostError(
+          current,
+          `${describeDuplicatePost(current)} O banco ainda não permite reenviar um post idêntico.`,
+        )
+      }
     }
     throw new DataLayerError('socialPosts.request', error)
   }

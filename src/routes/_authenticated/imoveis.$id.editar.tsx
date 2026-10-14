@@ -11,6 +11,7 @@ import type { PropertyFormData, PropertyImage } from '#/lib/properties'
 import {
   requestSocialPost,
   listPostQueueByProperty,
+  DuplicatePostError,
   generatePropertyCaption,
   POST_QUEUE_STATUS_LABELS,
 } from '#/lib/social-posts'
@@ -58,6 +59,7 @@ function ImoveisEditarPage() {
   const [isPosting, setIsPosting] = useState(false)
   const [postError, setPostError] = useState<string | null>(null)
   const [postSuccess, setPostSuccess] = useState(false)
+  const [republishPrompt, setRepublishPrompt] = useState<string | null>(null)
 
   const activeCount = images.length + pendingUploads.filter((p) => !p.error).length
 
@@ -137,23 +139,27 @@ function ImoveisEditarPage() {
     })
   }
 
-  async function handlePostToSocial() {
+  async function handlePostToSocial(confirmRepublish = false) {
     if (!selectedImageId) return
     const image = images.find((img) => img.id === selectedImageId)
     if (!image) return
 
     setPostError(null)
     setPostSuccess(false)
+    setRepublishPrompt(null)
     setIsPosting(true)
     try {
-      const created = await requestSocialPost({
-        propertyId: id,
-        caption,
-        imageUrl: image.url,
-      })
+      const created = await requestSocialPost(
+        { propertyId: id, caption, imageUrl: image.url },
+        { confirmRepublish },
+      )
       setPostQueue((prev) => [created, ...prev])
       setPostSuccess(true)
     } catch (err) {
+      if (err instanceof DuplicatePostError && err.duplicate.kind === 'published' && !confirmRepublish) {
+        setRepublishPrompt(err.message)
+        return
+      }
       setPostError(err instanceof Error ? err.message : 'Erro ao enviar para aprovação')
     } finally {
       setIsPosting(false)
@@ -345,6 +351,19 @@ function ImoveisEditarPage() {
 
           {postError && (
             <div className="mb-3 rounded-md bg-red-50 p-3 text-sm text-red-700">{postError}</div>
+          )}
+          {republishPrompt && (
+            <div className="mb-3 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+              <p>{republishPrompt} Quer publicar de novo?</p>
+              <div className="mt-2 flex gap-2">
+                <Button type="button" size="sm" disabled={isPosting} onClick={() => { void handlePostToSocial(true) }}>
+                  Confirmar
+                </Button>
+                <Button type="button" size="sm" variant="outline" disabled={isPosting} onClick={() => setRepublishPrompt(null)}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
           )}
           {postSuccess && (
             <div className="mb-3 rounded-md bg-green-50 p-3 text-sm text-green-700">
