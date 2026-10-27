@@ -149,9 +149,53 @@ export async function findDuplicatePost(companyId: string, caption: string, imag
 }
 
 /**
- * Insere a linha em post_queue (status inicial pending_approval) e avisa o n8n
- * via Edge Function, que envia a foto+legenda pro Vagner aprovar no WhatsApp
- * (Sprint 2A). Nada é publicado aqui — só entra na fila de aprovação.
+ * Lê companies.auto_publish da empresa do usuário. true = o post sai direto do
+ * CRM (após confirmação no modal), sem o "SIM" do Vagner no WhatsApp.
+ */
+export async function getCompanyAutoPublish(): Promise<boolean> {
+  const { companyId } = await getAuthContext()
+
+  const { data, error } = await supabase
+    .from('companies')
+    .select('auto_publish')
+    .eq('id', companyId)
+    .single()
+
+  if (error) {
+    // 42703 = coluna ainda não existe (front publicado antes da migração):
+    // mantém o fluxo de aprovação por WhatsApp, que é o comportamento antigo.
+    if (error.code === '42703') return false
+    throw new DataLayerError('socialPosts.autoPublish', error)
+  }
+  return data.auto_publish === true
+}
+
+/**
+ * A empresa publica direto, mas a chamada não veio do modal "Publicar agora".
+ * Garante que nunca sai um post sem o usuário ter visto foto + legenda.
+ */
+export class AutoPublishConfirmationRequiredError extends Error {
+  constructor() {
+    super('Confirme a publicação antes de enviar: esta empresa publica direto, sem aprovação pelo WhatsApp.')
+    this.name = 'AutoPublishConfirmationRequiredError'
+  }
+}
+
+export interface RequestSocialPostResult {
+  post: PostQueueItem
+  /** true = entrou como approved e o n8n já está publicando. */
+  autoPublished: boolean
+}
+
+/**
+ * Insere a linha em post_queue e avisa o n8n via Edge Function
+ * notify-post-queue (Sprint 2A).
+ *
+ * - companies.auto_publish=false: entra como pending_approval e o n8n manda
+ *   foto+legenda pro Vagner aprovar no WhatsApp. Nada é publicado aqui.
+ * - companies.auto_publish=true: exige `confirmedAutoPublish` (modal do CRM),
+ *   entra já como approved e o n8n segue direto pro mesmo ramo de publicação
+ *   do "SIM" (Marcar Aprovado → IG/FB → aviso ao Vagner).
  *
  * Antes de inserir, checa post idêntico: em andamento → DuplicatePostError;
  * já publicado → DuplicatePostError, a menos que `confirmRepublish` seja true;
@@ -159,13 +203,16 @@ export async function findDuplicatePost(companyId: string, caption: string, imag
  */
 export async function requestSocialPost(
   input: CreateSocialPostInput,
-  options: { confirmRepublish?: boolean } = {},
-): Promise<PostQueueItem> {
+  options: { confirmRepublish?: boolean; confirmedAutoPublish?: boolean } = {},
+): Promise<RequestSocialPostResult> {
   const { companyId } = await getAuthContext()
 
   const duplicate = await findDuplicatePost(companyId, input.caption, input.imageUrl)
   if (duplicate?.kind === 'in_progress') throw new DuplicatePostError(duplicate)
   if (duplicate?.kind === 'published' && !options.confirmRepublish) throw new DuplicatePostError(duplicate)
+
+  const autoPublish = await getCompanyAutoPublish()
+  if (autoPublish && !options.confirmedAutoPublish) throw new AutoPublishConfirmationRequiredError()
 
   const { data, error } = await supabase
     .from('post_queue')
@@ -174,6 +221,7 @@ export async function requestSocialPost(
       property_id: input.propertyId,
       caption: input.caption,
       image_url: input.imageUrl,
+      ...(autoPublish ? { status: 'approved', approved_at: new Date().toISOString() } : {}),
     })
     .select()
     .single()
@@ -195,30 +243,45 @@ export async function requestSocialPost(
     throw new DataLayerError('socialPosts.request', error)
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.access_token) {
-    throw new DataLayerError('socialPosts.request', 'Sessão expirada')
-  }
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-  const response = await fetch(`${supabaseUrl}/functions/v1/notify-post-queue`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({ postId: data.id }),
-  })
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({})) as { error?: string }
+  const notifyError = await notifyPostQueue(data.id)
+  if (notifyError) {
+    if (autoPublish) {
+      // Sem o n8n o post ficaria "approved" pra sempre e bloquearia o reenvio.
+      // Marca como failed pra liberar uma nova tentativa e mostrar o motivo.
+      const message = `Não foi possível iniciar a publicação: ${notifyError}`
+      await supabase.from('post_queue').update({ status: 'failed', error_message: message }).eq('id', data.id)
+      throw new DataLayerError('socialPosts.request', `${message}. Nada foi publicado; tente de novo.`)
+    }
     throw new DataLayerError(
       'socialPosts.request',
-      `Post criado, mas falhou ao avisar o n8n (HTTP_${response.status}: ${body.error ?? 'erro desconhecido'}). Ele continua pendente em post_queue.`,
+      `Post criado, mas falhou ao avisar o n8n (${notifyError}). Ele continua pendente em post_queue.`,
     )
   }
 
-  return data
+  return { post: data, autoPublished: autoPublish }
+}
+
+/** Chama a Edge Function notify-post-queue. Devolve o motivo da falha, ou null. */
+async function notifyPostQueue(postId: string): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) return 'sessão expirada'
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/notify-post-queue`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ postId }),
+    })
+    if (response.ok) return null
+    const body = await response.json().catch(() => ({})) as { error?: string }
+    return `HTTP_${response.status}: ${body.error ?? 'erro desconhecido'}`
+  } catch (err) {
+    return err instanceof Error ? err.message : 'erro de rede'
+  }
 }
 
 export async function listPostQueueByProperty(propertyId: string): Promise<PostQueueItem[]> {
@@ -230,13 +293,4 @@ export async function listPostQueueByProperty(propertyId: string): Promise<PostQ
 
   if (error) throw new DataLayerError('socialPosts.listByProperty', error)
   return data ?? []
-}
-
-export const POST_QUEUE_STATUS_LABELS: Record<string, string> = {
-  pending_approval: 'Aguardando aprovação do Vagner',
-  approved: 'Aprovado, publicando...',
-  publishing: 'Publicando...',
-  published: 'Publicado',
-  failed: 'Falhou',
-  rejected: 'Rejeitado',
 }

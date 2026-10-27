@@ -152,6 +152,7 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          auto_publish: boolean
           city: string | null
           cnpj: string | null
           created_at: string | null
@@ -165,6 +166,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          auto_publish?: boolean
           city?: string | null
           cnpj?: string | null
           created_at?: string | null
@@ -178,6 +180,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          auto_publish?: boolean
           city?: string | null
           cnpj?: string | null
           created_at?: string | null

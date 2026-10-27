@@ -1,7 +1,10 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { useState } from 'react'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { Building2 } from 'lucide-react'
 import { listProperties } from '#/lib/properties'
 import type { Property, PropertyStatus, PropertyType } from '#/lib/properties'
+import { useAuth } from '#/hooks/useAuth'
+import { PropertyCloseActions } from '#/components/property-close-actions'
 import { Button } from '#/components/ui/button'
 
 export const Route = createFileRoute('/_authenticated/imoveis/')({
@@ -51,7 +54,16 @@ function StatusBadge({ status }: { status: Property['status'] }) {
 }
 
 function ImoveisIndexPage() {
-  const properties = Route.useLoaderData()
+  const allProperties = Route.useLoaderData()
+  const router = useRouter()
+  const { claims } = useAuth()
+  const isAdmin = claims?.role === 'admin'
+  const [showArchived, setShowArchived] = useState(false)
+
+  const archivedCount = allProperties.filter((p) => p.status === 'arquivado').length
+  const properties = showArchived
+    ? allProperties
+    : allProperties.filter((p) => p.status !== 'arquivado')
 
   return (
     <div className="p-6 sm:p-8">
@@ -62,14 +74,26 @@ function ImoveisIndexPage() {
         </Button>
       </div>
 
+      <label className="mb-4 inline-flex items-center gap-2 text-sm text-gray-600">
+        <input
+          type="checkbox"
+          checked={showArchived}
+          onChange={(e) => setShowArchived(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-300"
+        />
+        Mostrar arquivados{archivedCount > 0 ? ` (${archivedCount})` : ''}
+      </label>
+
       {properties.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
           <Building2 className="mb-4 h-12 w-12 text-gray-300" />
           <p className="text-base font-medium text-gray-500">
-            Nenhum imóvel cadastrado
+            {allProperties.length > 0 ? 'Nenhum imóvel ativo' : 'Nenhum imóvel cadastrado'}
           </p>
           <p className="mt-1 text-sm text-gray-400">
-            Clique em &quot;Novo Imóvel&quot; para começar
+            {allProperties.length > 0
+              ? 'Marque "Mostrar arquivados" para ver os arquivados'
+              : 'Clique em "Novo Imóvel" para começar'}
           </p>
         </div>
       ) : (
@@ -123,13 +147,22 @@ function ImoveisIndexPage() {
                     {formatPrice(property.price)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      to="/imoveis/$id/editar"
-                      params={{ id: property.id }}
-                      className="inline-flex items-center -my-2 px-1 py-2 text-sm font-medium text-[#0E3A52] hover:underline"
-                    >
-                      Editar
-                    </Link>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Link
+                        to="/imoveis/$id/editar"
+                        params={{ id: property.id }}
+                        className="inline-flex items-center -my-2 px-1 py-2 text-sm font-medium text-[#0E3A52] hover:underline"
+                      >
+                        Editar
+                      </Link>
+                      <PropertyCloseActions
+                        property={property}
+                        isAdmin={isAdmin}
+                        size="sm"
+                        onArchived={() => { void router.invalidate() }}
+                        onDeleted={() => { void router.invalidate() }}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}

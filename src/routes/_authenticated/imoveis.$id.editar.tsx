@@ -11,14 +11,20 @@ import type { PropertyFormData, PropertyImage } from '#/lib/properties'
 import {
   requestSocialPost,
   listPostQueueByProperty,
+  getCompanyAutoPublish,
   DuplicatePostError,
+  AutoPublishConfirmationRequiredError,
   generatePropertyCaption,
-  POST_QUEUE_STATUS_LABELS,
 } from '#/lib/social-posts'
 import type { PostQueueItem } from '#/lib/social-posts'
+import { describePostStatus, isPostInFlight } from '#/lib/post-status'
+import type { PostStatusTone } from '#/lib/post-status'
 import { getInstagramAspectRatioWarning, loadImageDimensions } from '#/lib/social-image'
 import type { ImageDimensions } from '#/lib/social-image'
+import { useAuth } from '#/hooks/useAuth'
 import { PropertyForm } from '#/components/property-form'
+import { ConfirmDialog } from '#/components/confirm-dialog'
+import { PropertyCloseActions } from '#/components/property-close-actions'
 import { Button } from '#/components/ui/button'
 
 interface PendingUpload {
@@ -27,22 +33,42 @@ interface PendingUpload {
   error: string | null
 }
 
+const POST_TONE_CLASSES: Record<PostStatusTone, string> = {
+  neutral: 'text-gray-500',
+  progress: 'text-blue-600',
+  success: 'text-green-700',
+  warning: 'text-amber-700',
+  error: 'text-red-700',
+}
+
+// O n8n leva ~15-20s pra publicar (polling do container do IG). Reconsulta
+// até ~3 min; depois disso o corretor recarrega a página.
+const POST_POLL_INTERVAL_MS = 5000
+const POST_POLL_MAX_ATTEMPTS = 36
+
 export const Route = createFileRoute('/_authenticated/imoveis/$id/editar')({
   loader: async ({ params }) => {
-    const [property, images, postQueue] = await Promise.all([
+    const [property, images, postQueue, autoPublish] = await Promise.all([
       getPropertyById(params.id),
       listPropertyImages(params.id),
       listPostQueueByProperty(params.id),
+      getCompanyAutoPublish(),
     ])
-    return { property, images, postQueue }
+    return { property, images, postQueue, autoPublish }
   },
   component: ImoveisEditarPage,
 })
 
 function ImoveisEditarPage() {
-  const { property, images: initialImages, postQueue: initialPostQueue } = Route.useLoaderData()
+  const {
+    property,
+    images: initialImages,
+    postQueue: initialPostQueue,
+    autoPublish: initialAutoPublish,
+  } = Route.useLoaderData()
   const { id } = Route.useParams()
   const router = useRouter()
+  const { claims } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
 
   const [images, setImages] = useState<PropertyImage[]>(initialImages)
@@ -58,8 +84,30 @@ function ImoveisEditarPage() {
   const [caption, setCaption] = useState(() => generatePropertyCaption(property))
   const [isPosting, setIsPosting] = useState(false)
   const [postError, setPostError] = useState<string | null>(null)
-  const [postSuccess, setPostSuccess] = useState(false)
+  const [postSuccess, setPostSuccess] = useState<string | null>(null)
   const [republishPrompt, setRepublishPrompt] = useState<string | null>(null)
+  const [autoPublish, setAutoPublish] = useState(initialAutoPublish)
+  const [autoPublishModalOpen, setAutoPublishModalOpen] = useState(false)
+
+  // Acompanha os posts que o n8n está publicando até virarem published/failed.
+  const hasPostInFlight = postQueue.some((post) => isPostInFlight(post.status))
+  useEffect(() => {
+    if (!hasPostInFlight) return
+    let attempts = 0
+    const timer = setInterval(() => {
+      attempts += 1
+      if (attempts > POST_POLL_MAX_ATTEMPTS) {
+        clearInterval(timer)
+        return
+      }
+      listPostQueueByProperty(id)
+        .then(setPostQueue)
+        .catch(() => {
+          // falha pontual de rede: tenta de novo no próximo tick
+        })
+    }, POST_POLL_INTERVAL_MS)
+    return () => clearInterval(timer)
+  }, [hasPostInFlight, id])
 
   const activeCount = images.length + pendingUploads.filter((p) => !p.error).length
 
@@ -139,30 +187,54 @@ function ImoveisEditarPage() {
     })
   }
 
-  async function handlePostToSocial(confirmRepublish = false) {
+  function handlePostClick() {
+    setPostError(null)
+    setPostSuccess(null)
+    setRepublishPrompt(null)
+    if (autoPublish) {
+      setAutoPublishModalOpen(true)
+      return
+    }
+    void handlePostToSocial()
+  }
+
+  // confirmedAutoPublish só é true quando o usuário passou pelo modal "Publicar agora".
+  async function handlePostToSocial(confirmRepublish = false, confirmedAutoPublish = false) {
     if (!selectedImageId) return
     const image = images.find((img) => img.id === selectedImageId)
     if (!image) return
 
     setPostError(null)
-    setPostSuccess(false)
+    setPostSuccess(null)
     setRepublishPrompt(null)
     setIsPosting(true)
+    let reopenModal = false
     try {
-      const created = await requestSocialPost(
+      const { post, autoPublished } = await requestSocialPost(
         { propertyId: id, caption, imageUrl: image.url },
-        { confirmRepublish },
+        { confirmRepublish, confirmedAutoPublish },
       )
-      setPostQueue((prev) => [created, ...prev])
-      setPostSuccess(true)
+      setPostQueue((prev) => [post, ...prev])
+      setPostSuccess(
+        autoPublished
+          ? 'Publicando no Instagram/Facebook. O status abaixo atualiza sozinho.'
+          : 'Enviado para aprovação do Vagner no WhatsApp.',
+      )
     } catch (err) {
       if (err instanceof DuplicatePostError && err.duplicate.kind === 'published' && !confirmRepublish) {
         setRepublishPrompt(err.message)
         return
       }
-      setPostError(err instanceof Error ? err.message : 'Erro ao enviar para aprovação')
+      if (err instanceof AutoPublishConfirmationRequiredError) {
+        // a empresa passou a publicar direto depois que a página carregou
+        setAutoPublish(true)
+        reopenModal = true
+        return
+      }
+      setPostError(err instanceof Error ? err.message : 'Erro ao enviar o post')
     } finally {
       setIsPosting(false)
+      setAutoPublishModalOpen(reopenModal)
     }
   }
 
@@ -312,8 +384,9 @@ function ImoveisEditarPage() {
         <div className="mt-8 max-w-2xl">
           <h2 className="mb-1 text-lg font-semibold text-gray-900">Instagram / Facebook</h2>
           <p className="mb-4 text-sm text-gray-500">
-            Escolha a foto e a legenda. O post fica em aprovação com o Vagner pelo WhatsApp
-            antes de sair no ar — nada é publicado automaticamente.
+            {autoPublish
+              ? 'Escolha a foto e a legenda. Depois de confirmar, o post sai direto no Instagram/Facebook, sem aprovação pelo WhatsApp.'
+              : 'Escolha a foto e a legenda. O post fica em aprovação com o Vagner pelo WhatsApp antes de sair no ar — nada é publicado automaticamente.'}
           </p>
 
           <div className="mb-4 grid grid-cols-3 gap-3 sm:grid-cols-4">
@@ -356,7 +429,7 @@ function ImoveisEditarPage() {
             <div className="mb-3 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
               <p>{republishPrompt} Quer publicar de novo?</p>
               <div className="mt-2 flex gap-2">
-                <Button type="button" size="sm" disabled={isPosting} onClick={() => { void handlePostToSocial(true) }}>
+                <Button type="button" size="sm" disabled={isPosting} onClick={() => { void handlePostToSocial(true, autoPublish) }}>
                   Confirmar
                 </Button>
                 <Button type="button" size="sm" variant="outline" disabled={isPosting} onClick={() => setRepublishPrompt(null)}>
@@ -366,34 +439,74 @@ function ImoveisEditarPage() {
             </div>
           )}
           {postSuccess && (
-            <div className="mb-3 rounded-md bg-green-50 p-3 text-sm text-green-700">
-              Enviado para aprovação do Vagner no WhatsApp.
-            </div>
+            <div className="mb-3 rounded-md bg-green-50 p-3 text-sm text-green-700">{postSuccess}</div>
           )}
 
           <Button
             type="button"
             disabled={!selectedImageId || !caption.trim() || isPosting}
-            onClick={() => { void handlePostToSocial() }}
+            onClick={handlePostClick}
           >
             {isPosting ? 'Enviando...' : 'Postar no Instagram/Facebook'}
           </Button>
 
+          <ConfirmDialog
+            open={autoPublishModalOpen}
+            onOpenChange={setAutoPublishModalOpen}
+            title="Publicar no Instagram/Facebook?"
+            description="O post sai agora, sem aprovação pelo WhatsApp."
+            confirmLabel="Publicar agora"
+            isLoading={isPosting}
+            onConfirm={() => { void handlePostToSocial(false, true) }}
+          >
+            {selectedImageUrl && (
+              <img src={selectedImageUrl} alt="" className="mb-3 max-h-64 w-full rounded-md object-contain" />
+            )}
+            {ratioWarning && <p className="mb-3 text-sm text-amber-700">{ratioWarning}</p>}
+            <p className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-md border border-input p-3 text-sm text-gray-700">
+              {caption}
+            </p>
+          </ConfirmDialog>
+
           {postQueue.length > 0 && (
             <div className="mt-4 space-y-1.5">
               <h3 className="text-sm font-medium text-gray-700">Histórico de posts deste imóvel</h3>
-              {postQueue.map((post) => (
-                <div key={post.id} className="flex items-center justify-between rounded-md border border-input px-3 py-2 text-sm">
-                  <span className="truncate text-gray-600">{post.caption}</span>
-                  <span className="ml-3 shrink-0 text-xs text-gray-500">
-                    {POST_QUEUE_STATUS_LABELS[post.status] ?? post.status}
-                  </span>
-                </div>
-              ))}
+              {postQueue.map((post) => {
+                const view = describePostStatus(post)
+                return (
+                  <div key={post.id} className="rounded-md border border-input px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="truncate text-gray-600">{post.caption}</span>
+                      <span className={`ml-3 shrink-0 text-xs font-medium ${POST_TONE_CLASSES[view.tone]}`}>
+                        {view.label}
+                      </span>
+                    </div>
+                    {view.detail && (
+                      <p className={`mt-1 text-xs ${POST_TONE_CLASSES[view.tone]}`}>{view.detail}</p>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
       )}
+
+      <div className="mt-8 max-w-2xl border-t pt-6">
+        <h2 className="mb-1 text-lg font-semibold text-gray-900">Encerrar imóvel</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          Fechou com outra corretora? Arquive para tirar do site sem perder o histórico.
+          {claims?.role === 'admin' && ' "Excluir de vez" apaga tudo e não pode ser desfeito.'}
+        </p>
+        <div className="flex">
+          <PropertyCloseActions
+            property={property}
+            isAdmin={claims?.role === 'admin'}
+            onArchived={() => { void router.navigate({ to: '/imoveis' }) }}
+            onDeleted={() => { void router.navigate({ to: '/imoveis' }) }}
+          />
+        </div>
+      </div>
     </div>
   )
 }
