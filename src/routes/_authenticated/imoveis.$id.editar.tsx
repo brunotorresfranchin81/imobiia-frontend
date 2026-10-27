@@ -503,7 +503,9 @@ function ImoveisEditarPage() {
             property={property}
             isAdmin={claims?.role === 'admin'}
             onArchived={() => { void router.navigate({ to: '/imoveis' }) }}
-            onDeleted={() => { void router.navigate({ to: '/imoveis' }) }}
+            onDeleted={(warning) => {
+              void router.navigate({ to: '/imoveis', search: warning ? { aviso: warning } : {} })
+            }}
           />
         </div>
       </div>

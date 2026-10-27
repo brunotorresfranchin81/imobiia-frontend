@@ -8,6 +8,10 @@ import { PropertyCloseActions } from '#/components/property-close-actions'
 import { Button } from '#/components/ui/button'
 
 export const Route = createFileRoute('/_authenticated/imoveis/')({
+  // aviso = mensagem leve vinda de outra tela (ex.: excluiu mas sobrou foto no bucket)
+  validateSearch: (search: Record<string, unknown>): { aviso?: string } => ({
+    aviso: typeof search.aviso === 'string' ? search.aviso : undefined,
+  }),
   loader: () => listProperties(),
   component: ImoveisIndexPage,
 })
@@ -59,6 +63,13 @@ function ImoveisIndexPage() {
   const { claims } = useAuth()
   const isAdmin = claims?.role === 'admin'
   const [showArchived, setShowArchived] = useState(false)
+  const { aviso } = Route.useSearch()
+  const [notice, setNotice] = useState<string | null>(aviso ?? null)
+
+  function dismissNotice() {
+    setNotice(null)
+    if (aviso) void router.navigate({ to: '/imoveis', search: {}, replace: true })
+  }
 
   const archivedCount = allProperties.filter((p) => p.status === 'arquivado').length
   const properties = showArchived
@@ -73,6 +84,15 @@ function ImoveisIndexPage() {
           <Link to="/imoveis/novo">Novo Imóvel</Link>
         </Button>
       </div>
+
+      {notice && (
+        <div role="status" className="mb-4 flex items-start justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <span>{notice}</span>
+          <button type="button" onClick={dismissNotice} className="shrink-0 underline">
+            Fechar
+          </button>
+        </div>
+      )}
 
       <label className="mb-4 inline-flex items-center gap-2 text-sm text-gray-600">
         <input
@@ -160,7 +180,10 @@ function ImoveisIndexPage() {
                         isAdmin={isAdmin}
                         size="sm"
                         onArchived={() => { void router.invalidate() }}
-                        onDeleted={() => { void router.invalidate() }}
+                        onDeleted={(warning) => {
+                          setNotice(warning)
+                          void router.invalidate()
+                        }}
                       />
                     </div>
                   </td>

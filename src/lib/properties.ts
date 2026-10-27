@@ -113,14 +113,15 @@ export async function archiveProperty(id: string): Promise<Property> {
 const PROPERTIES_BUCKET = 'imobiia-properties'
 
 /**
- * "Excluir de vez" (só admin): apaga as fotos do bucket e depois a linha em
- * properties. property_images e price_history caem por cascade; post_queue
- * fica com property_id null (os posts já feitos no IG/FB continuam no ar).
+ * "Excluir de vez" (só admin): guarda os caminhos das fotos, apaga a linha em
+ * properties e só então os arquivos do bucket. property_images, price_history,
+ * visits e lead_properties caem por cascade; post_queue fica com property_id
+ * null (os posts já feitos no IG/FB continuam no ar).
  *
- * Cada etapa confere o resultado, porque o Supabase não devolve erro quando a
- * RLS simplesmente filtra a linha/arquivo — sem isso falharia em silêncio.
+ * Falha no banco = erro (nada apagado). Falha no bucket = `warning`, porque o
+ * imóvel já foi excluído e só sobram arquivos órfãos.
  */
-export async function deletePropertyPermanently(id: string): Promise<void> {
+export async function deletePropertyPermanently(id: string): Promise<{ warning: string | null }> {
   const { role, companyId } = await getAuthContext()
   if (role !== 'admin') {
     throw new DataLayerError('properties.delete', 'Só o administrador da empresa pode excluir um imóvel de vez.')
@@ -136,51 +137,55 @@ export async function deletePropertyPermanently(id: string): Promise<void> {
   const folder = `${companyId}/${id}`
   const listFolder = async () => {
     const { data, error } = await supabase.storage.from(PROPERTIES_BUCKET).list(folder, { limit: 1000 })
-    if (error) throw new DataLayerError('properties.delete', `Não foi possível listar as fotos: ${error.message}`)
+    if (error) {
+      console.error('[properties.delete] erro ao listar fotos:', error)
+      return []
+    }
     return (data ?? []).map((file) => `${folder}/${file.name}`)
   }
 
   const paths = [...new Set([...(imageRows ?? []).map((row) => row.storage_path), ...(await listFolder())])]
-  if (paths.length > 0) {
-    const { error: removeError } = await supabase.storage.from(PROPERTIES_BUCKET).remove(paths)
-    if (removeError) {
-      throw new DataLayerError('properties.delete', `Não foi possível apagar as fotos: ${removeError.message}. O imóvel não foi excluído.`)
-    }
-    const remaining = await listFolder()
-    if (remaining.length > 0) {
-      throw new DataLayerError(
-        'properties.delete',
-        `Sem permissão para apagar ${remaining.length} foto(s) do imóvel. O imóvel não foi excluído.`,
-      )
-    }
-  }
 
-  // 2. A linha. Sem policy de DELETE a RLS filtra em silêncio (0 linhas, sem erro).
+  // 2. A linha primeiro: se o banco recusar, nada foi apagado (fotos intactas).
+  // Sem policy de DELETE a RLS filtra em silêncio (0 linhas, sem erro).
   const { data: deleted, error } = await supabase
     .from('properties')
     .delete()
     .eq('id', id)
     .select('id')
 
-  const photosNote = paths.length > 0 ? ' As fotos já foram apagadas.' : ''
   if (error) {
     if (error.code === '23503') {
       throw new DataLayerError(
         'properties.delete',
-        `O imóvel ainda está vinculado a outros registros (${error.details ?? error.message}) e não pôde ser excluído.${photosNote}`,
+        `O imóvel ainda está vinculado a outros registros (${error.details ?? error.message}) e não pôde ser excluído.`,
       )
     }
     if (error.code === '42501') {
-      throw new DataLayerError('properties.delete', `Sem permissão para excluir este imóvel.${photosNote}`)
+      throw new DataLayerError('properties.delete', 'Sem permissão para excluir este imóvel.')
     }
-    throw new DataLayerError('properties.delete', `${error.message}${photosNote}`)
+    throw new DataLayerError('properties.delete', error)
   }
   if (!deleted?.length) {
     throw new DataLayerError(
       'properties.delete',
-      `O banco não permitiu excluir o imóvel (sem permissão ou ele não existe mais).${photosNote}`,
+      'O banco não permitiu excluir o imóvel (sem permissão ou ele não existe mais).',
     )
   }
+
+  // 3. Arquivos do bucket. O imóvel já não existe: falha aqui vira só aviso
+  // (sobram arquivos órfãos no storage), nunca erro.
+  if (paths.length === 0) return { warning: null }
+
+  const { error: removeError } = await supabase.storage.from(PROPERTIES_BUCKET).remove(paths)
+  const remaining = removeError ? paths : await listFolder()
+  if (removeError || remaining.length > 0) {
+    console.error('[properties.delete] fotos não apagadas do bucket:', removeError ?? remaining)
+    return {
+      warning: `Imóvel excluído, mas ${remaining.length} foto(s) não puderam ser apagadas do armazenamento.`,
+    }
+  }
+  return { warning: null }
 }
 
 export interface PropertyImage {

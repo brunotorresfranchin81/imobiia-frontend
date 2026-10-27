@@ -11,7 +11,8 @@ interface PropertyCloseActionsProps {
   isAdmin: boolean
   size?: 'sm' | 'default'
   onArchived: () => void
-  onDeleted: () => void
+  /** warning = imóvel excluído, mas sobrou foto no bucket (aviso leve). */
+  onDeleted: (warning: string | null) => void
 }
 
 export function PropertyCloseActions({ property, isAdmin, size = 'default', onArchived, onDeleted }: PropertyCloseActionsProps) {
@@ -34,9 +35,9 @@ export function PropertyCloseActions({ property, isAdmin, size = 'default', onAr
         setAction(null)
         onArchived()
       } else {
-        await deletePropertyPermanently(property.id)
+        const { warning } = await deletePropertyPermanently(property.id)
         setAction(null)
-        onDeleted()
+        onDeleted(warning)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado. Nada foi alterado.')
@@ -75,7 +76,7 @@ export function PropertyCloseActions({ property, isAdmin, size = 'default', onAr
         open={action === 'delete'}
         onOpenChange={(next) => { if (!next) setAction(null) }}
         title={`Excluir "${property.title}" de vez?`}
-        description="Isso apaga o imóvel, fotos e histórico de preço e o link do site deixa de existir. Posts já feitos no Instagram/Facebook continuam lá."
+        description="Isso apaga o imóvel, as fotos, o histórico de preço, as visitas agendadas e o vínculo do imóvel com os clientes (leads), e o link do site deixa de existir. Posts já feitos no Instagram/Facebook continuam lá."
         confirmLabel="Excluir de vez"
         destructive
         isLoading={isLoading}
