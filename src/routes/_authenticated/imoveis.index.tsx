@@ -58,7 +58,7 @@ function ImoveisIndexPage() {
     if (aviso) void router.navigate({ to: '/imoveis', search: {}, replace: true })
   }
 
-  // vendido/alugado/arquivado ficam fora da lista padrão
+  // só arquivado fica fora da lista padrão; vendido/alugado aparecem com a badge
   const archivedCount = allProperties.filter((p) => isForaDoSite(p.status)).length
   const properties = showArchived
     ? allProperties
@@ -100,7 +100,7 @@ function ImoveisIndexPage() {
           </p>
           <p className="mt-1 text-sm text-gray-400">
             {allProperties.length > 0
-              ? 'Marque "Mostrar arquivados" para ver os vendidos e alugados'
+              ? 'Marque "Mostrar arquivados" para ver os arquivados'
               : 'Clique em "Novo Imóvel" para começar'}
           </p>
         </div>

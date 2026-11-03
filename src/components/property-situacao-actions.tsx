@@ -112,7 +112,7 @@ export function PropertySituacaoActions({
         open={pending !== null}
         onOpenChange={(next) => { if (!next) setPending(null) }}
         title={pending ? `Marcar como ${SITUACAO_LABELS[pending]}?` : ''}
-        description={`"${property.title}" sai do site e da lista padrão de imóveis (fica em "Mostrar arquivados"). Nada é apagado: o histórico continua no CRM e dá pra voltar a situação depois — aí é só marcar "Publicar no site" de novo.`}
+        description={pending ? `"${property.title}" continua visível no site com a etiqueta ${SITUACAO_LABELS[pending]}. Para tirar do ar, o administrador usa "Excluir de vez".` : undefined}
         confirmLabel={pending ? `Marcar como ${SITUACAO_LABELS[pending]}` : 'Confirmar'}
         isLoading={isLoading}
         error={error}

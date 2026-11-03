@@ -98,8 +98,8 @@ export async function updateProperty(id: string, formData: PropertyFormData): Pr
 }
 
 /**
- * Muda a Situação. vendido/alugado/arquivado tiram do site (published=false),
- * sem apagar nada; voltar pra disponível não republica sozinho.
+ * Muda a Situação. Só arquivado tira do site (published=false); vendido/alugado
+ * e a volta pra disponível/em negociação não mexem em published nem featured.
  */
 export async function setPropertySituacao(
   property: Pick<Property, 'id' | 'operation_type'>,

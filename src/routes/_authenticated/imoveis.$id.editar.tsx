@@ -279,7 +279,7 @@ function ImoveisEditarPage() {
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Situação</h2>
             <p className="text-sm text-gray-500">
-              Vendido ou alugado sai do site sem perder o histórico. Em negociação continua no site.
+              Vendido ou alugado continua no site com a etiqueta da situação, até você excluir o imóvel.
               {claims?.role === 'admin' && ' "Excluir de vez" apaga tudo e não pode ser desfeito.'}
             </p>
           </div>

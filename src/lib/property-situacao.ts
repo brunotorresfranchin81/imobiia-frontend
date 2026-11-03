@@ -23,9 +23,12 @@ export const SITUACAO_COLORS: Record<PropertySituacao, string> = {
 // não é oferecido na caixinha, só aparece se o imóvel ainda estiver nele.
 const ORDER: PropertySituacao[] = ['disponivel', 'em_negociacao', 'vendido', 'alugado']
 
-/** Situações que tiram o imóvel do site e da lista padrão ("Mostrar arquivados"). */
+/**
+ * Só arquivado tira o imóvel do site e da lista padrão ("Mostrar arquivados").
+ * vendido/alugado é só sinalização: continua publicado até o "Excluir de vez".
+ */
 export function isForaDoSite(situacao: PropertySituacao | null | undefined): boolean {
-  return situacao === 'vendido' || situacao === 'alugado' || situacao === 'arquivado'
+  return situacao === 'arquivado'
 }
 
 /** vendido só em venda; alugado só em aluguel. operation_type nulo = venda (default do banco). */
@@ -40,7 +43,7 @@ export function situacoesPermitidas(operationType: OperationType | null | undefi
   return ORDER.filter((s) => isSituacaoPermitida(s, operationType))
 }
 
-/** Só vendido/alugado pedem confirmação (saem do site). */
+/** Só vendido/alugado pedem confirmação (sinalizam o fechamento; continuam no site). */
 export function precisaConfirmar(situacao: PropertySituacao): boolean {
   return situacao === 'vendido' || situacao === 'alugado'
 }

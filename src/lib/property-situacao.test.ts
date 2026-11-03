@@ -34,10 +34,10 @@ describe('situacoesPermitidas', () => {
 })
 
 describe('isForaDoSite / precisaConfirmar', () => {
-  it('vendido, alugado e arquivado saem do site; em negociação continua', () => {
-    expect(isForaDoSite('vendido')).toBe(true)
-    expect(isForaDoSite('alugado')).toBe(true)
+  it('só arquivado sai do site; vendido, alugado e em negociação continuam', () => {
     expect(isForaDoSite('arquivado')).toBe(true)
+    expect(isForaDoSite('vendido')).toBe(false)
+    expect(isForaDoSite('alugado')).toBe(false)
     expect(isForaDoSite('em_negociacao')).toBe(false)
     expect(isForaDoSite('disponivel')).toBe(false)
     expect(isForaDoSite(null)).toBe(false)
