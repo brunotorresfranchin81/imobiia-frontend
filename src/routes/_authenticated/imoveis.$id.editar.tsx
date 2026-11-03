@@ -24,7 +24,7 @@ import type { ImageDimensions } from '#/lib/social-image'
 import { useAuth } from '#/hooks/useAuth'
 import { PropertyForm } from '#/components/property-form'
 import { ConfirmDialog } from '#/components/confirm-dialog'
-import { PropertyCloseActions } from '#/components/property-close-actions'
+import { PropertySituacaoActions } from '#/components/property-situacao-actions'
 import { Button } from '#/components/ui/button'
 
 interface PendingUpload {
@@ -266,8 +266,32 @@ function ImoveisEditarPage() {
         </Link>
         <h1 className="min-w-0 text-2xl font-bold text-gray-900">Editar Imóvel</h1>
       </div>
+
+      <div className="mb-8 max-w-2xl rounded-lg border bg-white p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Situação</h2>
+            <p className="text-sm text-gray-500">
+              Vendido ou alugado sai do site sem perder o histórico. Em negociação continua no site.
+              {claims?.role === 'admin' && ' "Excluir de vez" apaga tudo e não pode ser desfeito.'}
+            </p>
+          </div>
+          <PropertySituacaoActions
+            property={property}
+            isAdmin={claims?.role === 'admin'}
+            onSituacaoChanged={() => { void router.invalidate() }}
+            onDeleted={(warning) => {
+              void router.navigate({ to: '/imoveis', search: warning ? { aviso: warning } : {} })
+            }}
+          />
+        </div>
+      </div>
+
       <div className="max-w-2xl">
         <PropertyForm
+          // remonta ao mudar a Situação: "Publicar no site" reflete o banco
+          key={property.status ?? ''}
+          situacao={property.status}
           defaultValues={{
             title: property.title,
             description: property.description,
@@ -277,7 +301,6 @@ function ImoveisEditarPage() {
             state: property.state,
             zip_code: property.zip_code,
             property_type: property.property_type,
-            status: property.status,
             area_m2: property.area_m2 != null ? String(property.area_m2) : '',
             price: property.price != null ? String(Number(property.price)) : '',
             condominio_valor: property.condominio_valor != null ? String(Number(property.condominio_valor)) : '',
@@ -492,23 +515,6 @@ function ImoveisEditarPage() {
         </div>
       )}
 
-      <div className="mt-8 max-w-2xl border-t pt-6">
-        <h2 className="mb-1 text-lg font-semibold text-gray-900">Encerrar imóvel</h2>
-        <p className="mb-4 text-sm text-gray-500">
-          Fechou com outra corretora? Arquive para tirar do site sem perder o histórico.
-          {claims?.role === 'admin' && ' "Excluir de vez" apaga tudo e não pode ser desfeito.'}
-        </p>
-        <div className="flex">
-          <PropertyCloseActions
-            property={property}
-            isAdmin={claims?.role === 'admin'}
-            onArchived={() => { void router.navigate({ to: '/imoveis' }) }}
-            onDeleted={(warning) => {
-              void router.navigate({ to: '/imoveis', search: warning ? { aviso: warning } : {} })
-            }}
-          />
-        </div>
-      </div>
     </div>
   )
 }

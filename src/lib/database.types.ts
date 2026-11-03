@@ -1202,7 +1202,12 @@ export type Database = {
         | "message_received"
         | "visit_confirmed"
       property_intent: "venda" | "aluguel"
-      property_status: "ativo" | "reservado" | "vendido" | "arquivado"
+      property_status:
+        | "disponivel"
+        | "em_negociacao"
+        | "vendido"
+        | "alugado"
+        | "arquivado"
       property_type: "apartamento" | "casa" | "comercial" | "terreno" | "outro"
       qualification_status: "incompleto" | "completo"
       user_role: "corretor" | "gestor" | "admin"
@@ -1393,7 +1398,13 @@ export const Constants = {
         "visit_confirmed",
       ],
       property_intent: ["venda", "aluguel"],
-      property_status: ["ativo", "reservado", "vendido", "arquivado"],
+      property_status: [
+        "disponivel",
+        "em_negociacao",
+        "vendido",
+        "alugado",
+        "arquivado",
+      ],
       property_type: ["apartamento", "casa", "comercial", "terreno", "outro"],
       qualification_status: ["incompleto", "completo"],
       user_role: ["corretor", "gestor", "admin"],

@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { getAuthContext } from './auth'
 import { DataLayerError } from './errors'
+import { isForaDoSite, isSituacaoPermitida } from './property-situacao'
 import type { Database } from './database.types'
 
 export type Property = Database['public']['Tables']['properties']['Row']
@@ -17,7 +18,8 @@ export type PropertyFormData = {
   state?: string | null
   zip_code?: string | null
   property_type: PropertyType
-  status: PropertyStatus
+  /** Fora do formulário: a Situação muda pela caixinha (setPropertySituacao). */
+  status?: PropertyStatus
   area_m2?: number | null
   price: number
   condominio_valor?: number | null
@@ -96,17 +98,34 @@ export async function updateProperty(id: string, formData: PropertyFormData): Pr
 }
 
 /**
- * "Fechado com outra corretora": arquiva e tira do site, sem apagar nada.
+ * Muda a Situação. vendido/alugado/arquivado tiram do site (published=false),
+ * sem apagar nada; voltar pra disponível não republica sozinho.
  */
-export async function archiveProperty(id: string): Promise<Property> {
+export async function setPropertySituacao(
+  property: Pick<Property, 'id' | 'operation_type'>,
+  situacao: PropertyStatus,
+): Promise<Property> {
+  if (!isSituacaoPermitida(situacao, property.operation_type)) {
+    throw new DataLayerError(
+      'properties.situacao',
+      situacao === 'vendido'
+        ? 'Só imóvel de venda pode ficar como Vendido.'
+        : 'Só imóvel de aluguel pode ficar como Alugado.',
+    )
+  }
+
   const { data, error } = await supabase
     .from('properties')
-    .update({ status: 'arquivado', published: false, updated_at: new Date().toISOString() })
-    .eq('id', id)
+    .update({
+      status: situacao,
+      ...(isForaDoSite(situacao) ? { published: false, featured: false } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', property.id)
     .select()
     .single()
 
-  if (error) throw new DataLayerError('properties.archive', error)
+  if (error) throw new DataLayerError('properties.situacao', error)
   return data
 }
 

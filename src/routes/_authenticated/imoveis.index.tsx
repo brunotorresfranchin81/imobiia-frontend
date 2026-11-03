@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { Building2 } from 'lucide-react'
 import { listProperties } from '#/lib/properties'
-import type { Property, PropertyStatus, PropertyType } from '#/lib/properties'
+import type { Property, PropertyType } from '#/lib/properties'
+import { SITUACAO_COLORS, SITUACAO_LABELS, isForaDoSite } from '#/lib/property-situacao'
 import { useAuth } from '#/hooks/useAuth'
-import { PropertyCloseActions } from '#/components/property-close-actions'
+import { PropertySituacaoActions } from '#/components/property-situacao-actions'
 import { Button } from '#/components/ui/button'
 
 export const Route = createFileRoute('/_authenticated/imoveis/')({
@@ -24,20 +25,6 @@ const TIPO_LABELS: Record<PropertyType, string> = {
   outro: 'Outro',
 }
 
-const STATUS_LABELS: Record<PropertyStatus, string> = {
-  ativo: 'Ativo',
-  reservado: 'Reservado',
-  vendido: 'Vendido',
-  arquivado: 'Arquivado',
-}
-
-const STATUS_COLORS: Record<PropertyStatus, string> = {
-  ativo: 'bg-green-100 text-green-700',
-  reservado: 'bg-yellow-100 text-yellow-700',
-  vendido: 'bg-blue-100 text-blue-700',
-  arquivado: 'bg-gray-100 text-gray-600',
-}
-
 function formatPrice(price: number | null) {
   if (price == null) return '—'
   return new Intl.NumberFormat('pt-BR', {
@@ -46,13 +33,13 @@ function formatPrice(price: number | null) {
   }).format(Number(price))
 }
 
-function StatusBadge({ status }: { status: Property['status'] }) {
+function SituacaoBadge({ status }: { status: Property['status'] }) {
   if (!status) return <span className="text-gray-400">—</span>
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[status]}`}
+      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${SITUACAO_COLORS[status]}`}
     >
-      {STATUS_LABELS[status]}
+      {SITUACAO_LABELS[status]}
     </span>
   )
 }
@@ -71,10 +58,11 @@ function ImoveisIndexPage() {
     if (aviso) void router.navigate({ to: '/imoveis', search: {}, replace: true })
   }
 
-  const archivedCount = allProperties.filter((p) => p.status === 'arquivado').length
+  // vendido/alugado/arquivado ficam fora da lista padrão
+  const archivedCount = allProperties.filter((p) => isForaDoSite(p.status)).length
   const properties = showArchived
     ? allProperties
-    : allProperties.filter((p) => p.status !== 'arquivado')
+    : allProperties.filter((p) => !isForaDoSite(p.status))
 
   return (
     <div className="p-6 sm:p-8">
@@ -108,11 +96,11 @@ function ImoveisIndexPage() {
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-20 text-center">
           <Building2 className="mb-4 h-12 w-12 text-gray-300" />
           <p className="text-base font-medium text-gray-500">
-            {allProperties.length > 0 ? 'Nenhum imóvel ativo' : 'Nenhum imóvel cadastrado'}
+            {allProperties.length > 0 ? 'Nenhum imóvel disponível' : 'Nenhum imóvel cadastrado'}
           </p>
           <p className="mt-1 text-sm text-gray-400">
             {allProperties.length > 0
-              ? 'Marque "Mostrar arquivados" para ver os arquivados'
+              ? 'Marque "Mostrar arquivados" para ver os vendidos e alugados'
               : 'Clique em "Novo Imóvel" para começar'}
           </p>
         </div>
@@ -131,7 +119,7 @@ function ImoveisIndexPage() {
                   Tipo
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Status
+                  Situação
                 </th>
                 <th className="hidden px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 sm:table-cell">
                   Preço
@@ -161,7 +149,7 @@ function ImoveisIndexPage() {
                       : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={property.status} />
+                    <SituacaoBadge status={property.status} />
                   </td>
                   <td className="hidden px-4 py-3 text-right text-sm text-gray-700 sm:table-cell">
                     {formatPrice(property.price)}
@@ -175,11 +163,11 @@ function ImoveisIndexPage() {
                       >
                         Editar
                       </Link>
-                      <PropertyCloseActions
+                      <PropertySituacaoActions
                         property={property}
                         isAdmin={isAdmin}
                         size="sm"
-                        onArchived={() => { void router.invalidate() }}
+                        onSituacaoChanged={() => { void router.invalidate() }}
                         onDeleted={(warning) => {
                           setNotice(warning)
                           void router.invalidate()

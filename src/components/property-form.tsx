@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { PropertyFormData, PropertyType, PropertyStatus, OperationType } from '#/lib/properties'
 import { generateSlug } from '#/lib/properties'
+import { SITUACAO_LABELS, isForaDoSite, isSituacaoPermitida } from '#/lib/property-situacao'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
@@ -11,13 +12,6 @@ const PROPERTY_TYPES: { value: PropertyType; label: string }[] = [
   { value: 'comercial', label: 'Comercial' },
   { value: 'terreno', label: 'Terreno' },
   { value: 'outro', label: 'Outro' },
-]
-
-const PROPERTY_STATUSES: { value: PropertyStatus; label: string }[] = [
-  { value: 'ativo', label: 'Ativo' },
-  { value: 'reservado', label: 'Reservado' },
-  { value: 'vendido', label: 'Vendido' },
-  { value: 'arquivado', label: 'Arquivado' },
 ]
 
 const OPERATION_TYPES: { value: OperationType; label: string }[] = [
@@ -34,7 +28,6 @@ interface FormState {
   state: string
   zip_code: string
   property_type: PropertyType
-  status: PropertyStatus
   area_m2: string
   price: string
   condominio_valor: string
@@ -58,7 +51,6 @@ interface PropertyFormDefaultValues {
   state?: string | null
   zip_code?: string | null
   property_type?: PropertyType | null
-  status?: PropertyStatus | null
   area_m2?: string
   price?: string
   condominio_valor?: string
@@ -77,9 +69,12 @@ interface PropertyFormProps {
   defaultValues?: PropertyFormDefaultValues
   onSubmit: (data: PropertyFormData) => Promise<void>
   isLoading?: boolean
+  /** Situação atual (só na edição; muda pela caixinha fora do formulário). */
+  situacao?: PropertyStatus | null
 }
 
-export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFormProps) {
+export function PropertyForm({ defaultValues, onSubmit, isLoading, situacao }: PropertyFormProps) {
+  const foraDoSite = isForaDoSite(situacao)
   const [values, setValues] = useState<FormState>({
     title: defaultValues?.title ?? '',
     description: defaultValues?.description ?? '',
@@ -89,7 +84,6 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
     state: defaultValues?.state ?? '',
     zip_code: defaultValues?.zip_code ?? '',
     property_type: defaultValues?.property_type ?? 'apartamento',
-    status: defaultValues?.status ?? 'ativo',
     area_m2: defaultValues?.area_m2 ?? '',
     price: defaultValues?.price ?? '',
     condominio_valor: defaultValues?.condominio_valor ?? '',
@@ -98,8 +92,8 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
     bathrooms: defaultValues?.bathrooms != null ? String(defaultValues.bathrooms) : '',
     suites: defaultValues?.suites != null ? String(defaultValues.suites) : '',
     parking_spots: defaultValues?.parking_spots != null ? String(defaultValues.parking_spots) : '',
-    published: defaultValues?.published ?? false,
-    featured: defaultValues?.featured ?? false,
+    published: foraDoSite ? false : defaultValues?.published ?? false,
+    featured: foraDoSite ? false : defaultValues?.featured ?? false,
     slug: defaultValues?.slug ?? '',
     operation_type: defaultValues?.operation_type ?? 'venda',
   })
@@ -140,6 +134,10 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    if (situacao && !isSituacaoPermitida(situacao, values.operation_type)) {
+      setError(`Este imóvel está como ${SITUACAO_LABELS[situacao]}. Mude a Situação antes de trocar o tipo de operação.`)
+      return
+    }
     try {
       await onSubmit({
         title: values.title,
@@ -150,7 +148,6 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
         state: values.state || null,
         zip_code: values.zip_code || null,
         property_type: values.property_type,
-        status: values.status,
         area_m2: values.area_m2 ? Number(values.area_m2) : null,
         price: Number(values.price),
         condominio_valor: values.condominio_valor ? Number(values.condominio_valor) : null,
@@ -159,8 +156,8 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
         bathrooms: values.bathrooms ? Number(values.bathrooms) : null,
         suites: values.suites ? Number(values.suites) : null,
         parking_spots: values.parking_spots ? Number(values.parking_spots) : null,
-        published: values.published,
-        featured: values.published ? values.featured : false,
+        published: foraDoSite ? false : values.published,
+        featured: !foraDoSite && values.published ? values.featured : false,
         slug: values.slug || null,
         operation_type: values.operation_type,
       })
@@ -268,22 +265,6 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
             {PROPERTY_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="status">Status</Label>
-          <select
-            id="status"
-            value={values.status}
-            onChange={handleChange('status')}
-            className={selectClass}
-          >
-            {PROPERTY_STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
               </option>
             ))}
           </select>
@@ -414,13 +395,18 @@ export function PropertyForm({ defaultValues, onSubmit, isLoading }: PropertyFor
         <div className="flex items-center justify-between rounded-lg border border-input px-3 py-2.5">
           <div>
             <Label htmlFor="published">Publicar no site</Label>
-            <p className="text-xs text-gray-500">Controla se o imóvel aparece no site</p>
+            <p className="text-xs text-gray-500">
+              {foraDoSite && situacao
+                ? `Imóvel ${SITUACAO_LABELS[situacao].toLowerCase()}: fica fora do site. Mude a Situação para publicar de novo.`
+                : 'Controla se o imóvel aparece no site'}
+            </p>
           </div>
           <input
             id="published"
             type="checkbox"
             checked={values.published}
             onChange={handlePublishedChange}
+            disabled={foraDoSite}
             className="h-5 w-5 rounded border-input text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
