@@ -52,7 +52,12 @@ export const Route = createFileRoute('/_authenticated/imoveis/$id/editar')({
       getPropertyById(params.id),
       listPropertyImages(params.id),
       listPostQueueByProperty(params.id),
-      getCompanyAutoPublish(),
+      // Falha ao ler auto_publish não derruba a tela: cai no fluxo com aprovação
+      // e o erro aparece na seção de post (o envio relê e falha com o motivo).
+      getCompanyAutoPublish().then(
+        (value) => ({ value, error: null }),
+        (err: unknown) => ({ value: false, error: err instanceof Error ? err.message : String(err) }),
+      ),
     ])
     return { property, images, postQueue, autoPublish }
   },
@@ -64,7 +69,7 @@ function ImoveisEditarPage() {
     property,
     images: initialImages,
     postQueue: initialPostQueue,
-    autoPublish: initialAutoPublish,
+    autoPublish: { value: initialAutoPublish, error: autoPublishLoadError },
   } = Route.useLoaderData()
   const { id } = Route.useParams()
   const router = useRouter()
@@ -83,7 +88,9 @@ function ImoveisEditarPage() {
   )
   const [caption, setCaption] = useState(() => generatePropertyCaption(property))
   const [isPosting, setIsPosting] = useState(false)
-  const [postError, setPostError] = useState<string | null>(null)
+  const [postError, setPostError] = useState<string | null>(
+    autoPublishLoadError ? `Não foi possível ler a configuração de publicação da empresa: ${autoPublishLoadError}` : null,
+  )
   const [postSuccess, setPostSuccess] = useState<string | null>(null)
   const [republishPrompt, setRepublishPrompt] = useState<string | null>(null)
   const [autoPublish, setAutoPublish] = useState(initialAutoPublish)

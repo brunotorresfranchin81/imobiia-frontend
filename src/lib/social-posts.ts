@@ -6,6 +6,16 @@ import type { Property } from './properties'
 
 export type PostQueueItem = Database['public']['Tables']['post_queue']['Row']
 
+/**
+ * Erro do Supabase (PostgrestError não é instanceof Error) vira Error com o
+ * texto real. Sem isso a tela mostrava "[object Object]".
+ */
+function toError(error: unknown): Error {
+  if (error instanceof Error) return error
+  const message = (error as { message?: string } | null)?.message
+  return new Error(message ?? JSON.stringify(error))
+}
+
 export interface CreateSocialPostInput {
   propertyId: string | null
   caption: string
@@ -136,7 +146,7 @@ export async function findDuplicatePost(companyId: string, caption: string, imag
     .eq('image_url', imageUrl)
     .order('created_at', { ascending: false })
 
-  if (error) throw new DataLayerError('socialPosts.findDuplicate', error)
+  if (error) throw toError(error)
   if (!data?.length) return null
 
   const inProgress = data.find((post) => IN_PROGRESS_STATUSES.has(post.status))
@@ -165,7 +175,7 @@ export async function getCompanyAutoPublish(): Promise<boolean> {
     // 42703 = coluna ainda não existe (front publicado antes da migração):
     // mantém o fluxo de aprovação por WhatsApp, que é o comportamento antigo.
     if (error.code === '42703') return false
-    throw new DataLayerError('socialPosts.autoPublish', error)
+    throw toError(error)
   }
   return data.auto_publish === true
 }
@@ -240,7 +250,7 @@ export async function requestSocialPost(
         )
       }
     }
-    throw new DataLayerError('socialPosts.request', error)
+    throw toError(error)
   }
 
   const notifyError = await notifyPostQueue(data.id)
@@ -250,12 +260,9 @@ export async function requestSocialPost(
       // Marca como failed pra liberar uma nova tentativa e mostrar o motivo.
       const message = `Não foi possível iniciar a publicação: ${notifyError}`
       await supabase.from('post_queue').update({ status: 'failed', error_message: message }).eq('id', data.id)
-      throw new DataLayerError('socialPosts.request', `${message}. Nada foi publicado; tente de novo.`)
+      throw new Error(`${message}. Nada foi publicado; tente de novo.`)
     }
-    throw new DataLayerError(
-      'socialPosts.request',
-      `Post criado, mas falhou ao avisar o n8n (${notifyError}). Ele continua pendente em post_queue.`,
-    )
+    throw new Error(`Post criado, mas falhou ao avisar o n8n (${notifyError}). Ele continua pendente em post_queue.`)
   }
 
   return { post: data, autoPublished: autoPublish }
