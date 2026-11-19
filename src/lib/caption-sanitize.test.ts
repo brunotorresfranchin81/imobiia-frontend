@@ -29,6 +29,10 @@ describe('sanitizeCaption', () => {
     expect(sanitizeCaption('Fale: https://wa.me/5522999971624')).toBe('Fale: WhatsApp: (22) 99997-1624')
   })
 
+  it('remove título markdown mas preserva hashtags', () => {
+    expect(sanitizeCaption('## Casa linda\n#imóveis #CaboFrio')).toBe('Casa linda\n#imóveis #CaboFrio')
+  })
+
   it('colapsa quebras e tolera vazio', () => {
     expect(sanitizeCaption('a\n\n\n\nb')).toBe('a\n\nb')
     expect(sanitizeCaption(null)).toBe('')

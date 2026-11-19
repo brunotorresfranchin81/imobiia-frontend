@@ -39,6 +39,9 @@ export function sanitizeCaption(text: string | null | undefined): string {
   // [texto](url) → url (sem duplicar)
   out = out.replace(/\[([^\]]*)\]\(([^)\s]+)\)/g, (_m, _label: string, url: string) => url)
 
+  // título markdown (# / ## / ###) no começo da linha — exige espaço, então #hashtag fica
+  out = out.replace(/^[ \t]{0,3}#{1,6}[ \t]+/gm, '')
+
   // negrito/sublinhado markdown
   out = out.replace(/\*\*|__/g, '')
 
