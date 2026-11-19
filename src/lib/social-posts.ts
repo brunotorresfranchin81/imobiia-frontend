@@ -3,6 +3,7 @@ import { getAuthContext } from './auth'
 import { DataLayerError } from './errors'
 import type { Database } from './database.types'
 import type { Property } from './properties'
+import { sanitizeCaption } from './caption-sanitize'
 
 export type PostQueueItem = Database['public']['Tables']['post_queue']['Row']
 
@@ -82,7 +83,8 @@ export function generatePropertyCaption(property: PropertyCaptionSource): string
 
   if (property.title?.trim()) blocks.push(property.title.trim())
 
-  if (property.description?.trim()) blocks.push(property.description.trim())
+  const description = sanitizeCaption(property.description)
+  if (description) blocks.push(description)
 
   if (property.area_m2 != null) blocks.push(`📐 ${formatAreaM2(Number(property.area_m2))}`)
 
@@ -216,8 +218,9 @@ export async function requestSocialPost(
   options: { confirmRepublish?: boolean; confirmedAutoPublish?: boolean } = {},
 ): Promise<RequestSocialPostResult> {
   const { companyId } = await getAuthContext()
+  const caption = sanitizeCaption(input.caption)
 
-  const duplicate = await findDuplicatePost(companyId, input.caption, input.imageUrl)
+  const duplicate = await findDuplicatePost(companyId, caption, input.imageUrl)
   if (duplicate?.kind === 'in_progress') throw new DuplicatePostError(duplicate)
   if (duplicate?.kind === 'published' && !options.confirmRepublish) throw new DuplicatePostError(duplicate)
 
@@ -229,7 +232,7 @@ export async function requestSocialPost(
     .insert({
       company_id: companyId,
       property_id: input.propertyId,
-      caption: input.caption,
+      caption,
       image_url: input.imageUrl,
       ...(autoPublish ? { status: 'approved', approved_at: new Date().toISOString() } : {}),
     })
@@ -241,7 +244,7 @@ export async function requestSocialPost(
     // entre a checagem e o insert) ou o índice ainda valer pra qualquer
     // status. Reconsulta pra explicar o caso real, nunca um texto genérico.
     if (error.code === '23505') {
-      const current = await findDuplicatePost(companyId, input.caption, input.imageUrl)
+      const current = await findDuplicatePost(companyId, caption, input.imageUrl)
       if (current?.kind === 'in_progress') throw new DuplicatePostError(current)
       if (current) {
         throw new DuplicatePostError(

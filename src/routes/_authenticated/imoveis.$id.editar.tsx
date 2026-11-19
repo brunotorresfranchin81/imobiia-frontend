@@ -18,6 +18,7 @@ import {
 } from '#/lib/social-posts'
 import type { PostQueueItem } from '#/lib/social-posts'
 import { describePostStatus, isPostInFlight } from '#/lib/post-status'
+import { sanitizeCaption } from '#/lib/caption-sanitize'
 import type { PostStatusTone } from '#/lib/post-status'
 import { getInstagramAspectRatioWarning, loadImageDimensions } from '#/lib/social-image'
 import type { ImageDimensions } from '#/lib/social-image'
@@ -494,7 +495,7 @@ function ImoveisEditarPage() {
             )}
             {ratioWarning && <p className="mb-3 text-sm text-amber-700">{ratioWarning}</p>}
             <p className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-md border border-input p-3 text-sm text-gray-700">
-              {caption}
+              {sanitizeCaption(caption)}
             </p>
           </ConfirmDialog>
 
